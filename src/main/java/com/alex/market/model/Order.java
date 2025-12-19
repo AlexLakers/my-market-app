@@ -2,6 +2,8 @@ package com.alex.market.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldNameConstants;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,7 @@ import java.util.List;
 @ToString
 @EqualsAndHashCode(of = "id")
 @Builder
+@FieldNameConstants
 @Table(name = "orders")
 public class Order {
     @Id
@@ -29,5 +32,6 @@ public class Order {
     @JoinTable(name = "orders_items",
             joinColumns = @JoinColumn(name = "order_id"),
             inverseJoinColumns = @JoinColumn(name = "item_id"))
-    private List<Item> items =new ArrayList<>();
+    @BatchSize(size = 50)
+    private List<Item> items = new ArrayList<>();
 }
