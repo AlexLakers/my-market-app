@@ -15,5 +15,5 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(
             attributePaths = Order.Fields.items,
             type = EntityGraph.EntityGraphType.FETCH)
-    List<Order> findAllWithItems();
+    List<Order> findAll();
 }
