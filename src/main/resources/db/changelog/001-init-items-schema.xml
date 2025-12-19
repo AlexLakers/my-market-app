@@ -1,0 +1,49 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="create_items_sequence" author="alexlakers">
+        <preConditions>
+            <not>
+                <sequenceExists sequenceName="items_sequence"/>
+            </not>
+        </preConditions>
+        <createSequence sequenceName="items_sequence" incrementBy="1"/>
+        <rollback>
+            <dropSequence sequenceName="items_sequence"/>
+        </rollback>
+    </changeSet>
+    <changeSet id="create_items_table" author="alexlakers">
+        <preConditions>
+            <not>
+                <tableExists tableName="items"/>
+            </not>
+        </preConditions>
+        <createTable tableName="items">
+            <column name="id" type="bigint"
+                    defaultValueSequenceNext="items_sequence">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="title" type="varchar(128)">
+                <constraints nullable="false"
+                             unique="true"/>
+            </column>
+            <column name="description" type="varchar(512)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="img_path" type="varchar(128)">
+                <constraints nullable="false"
+                             unique="true"/>
+            </column>
+            <column name="price" type="bigint">
+                <constraints nullable="false"
+                             checkConstraint="price > 0"/>
+            </column>
+            <column name="count" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="items"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

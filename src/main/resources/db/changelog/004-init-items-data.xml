@@ -1,0 +1,40 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="insert_items_data" author="alexlakers">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="items"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*)
+                                         FROM items</sqlCheck>
+        </preConditions>
+        <insert tableName="items">
+            <column name="title" value="ball"/>
+            <column name="description" value="Description about the ball"/>
+            <column name="img_path" value="/images/ball.jpg"/>
+            <column name="count" valueNumeric="0"/>
+            <column name="price" valueNumeric="1000"/>
+        </insert>
+
+        <insert tableName="items">
+            <column name="title" value="car"/>
+            <column name="description" value="Description about the car"/>
+            <column name="img_path" value="/images/car.jpg"/>
+            <column name="count" valueNumeric="0"/>
+            <column name="price" valueNumeric="100000"/>
+        </insert>
+        <insert tableName="items">
+            <column name="title" value="computer"/>
+            <column name="description" value="Description about the computer"/>
+            <column name="img_path" value="/images/computer.jpg"/>
+            <column name="count" valueNumeric="0"/>
+            <column name="price" valueNumeric="10000"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="items">
+                <where>title IN ('ball','car','computer')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,55 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="create_orders_items_table" author="alexlakers">
+        <preConditions>
+            <not>
+                <tableExists tableName="orders_items"/>
+            </not>
+        </preConditions>
+        <createTable tableName="orders_items">
+            <column name="item_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="order_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="orders_items"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_orders_items_foreign_key_items" author="alexlakers">
+        <preConditions>
+            <not>
+                <foreignKeyConstraintExists foreignKeyName="fk_orders_items_items"/>
+            </not>
+        </preConditions>
+
+        <addForeignKeyConstraint baseTableName="orders_items" baseColumnNames="item_id" referencedTableName="items"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_orders_items_items"/>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="orders_items" constraintName="fk_orders_items_items"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="create_orders_items_foreign_key_orders" author="alexlakers">
+        <preConditions>
+            <not>
+                <foreignKeyConstraintExists foreignKeyName="fk_orders_items_orders"/>
+            </not>
+        </preConditions>
+
+        <addForeignKeyConstraint baseTableName="orders_items" baseColumnNames="order_id" referencedTableName="orders"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_orders_items_orders"/>
+
+        <rollback>
+            <dropForeignKeyConstraint baseTableName="orders_items" constraintName="fk_orders_items_orders"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
