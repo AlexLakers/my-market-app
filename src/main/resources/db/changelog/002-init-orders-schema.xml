@@ -1,0 +1,35 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="create_items_sequence" author="alexlakers">
+        <preConditions>
+            <not>
+                <sequenceExists sequenceName="orders_sequence"/>
+            </not>
+        </preConditions>
+        <createSequence sequenceName="orders_sequence" incrementBy="1"/>
+        <rollback>
+            <dropSequence sequenceName="orders_sequence"/>
+        </rollback>
+    </changeSet>
+    <changeSet id="create_orders_table" author="alexlakers">
+        <preConditions>
+            <not>
+                <tableExists tableName="orders"/>
+            </not>
+        </preConditions>
+        <createTable tableName="orders">
+            <column name="id" type="bigint"
+                    defaultValueSequenceNext="orders_sequence">>
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="total_sum" type="bigint">
+                <constraints nullable="false"
+                             checkConstraint="total_sum> 0"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="orders"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
