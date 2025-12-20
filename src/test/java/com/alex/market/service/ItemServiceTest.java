@@ -2,12 +2,19 @@ package com.alex.market.service;
 
 import com.alex.market.api.dto.ItemDto;
 import com.alex.market.api.dto.PageDto;
+import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.*;
 import com.alex.market.service.impl.ItemServiceImpl;
+import jakarta.validation.constraints.NotNull;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -22,14 +29,23 @@ import java.util.*;
 @SpringJUnitConfig
 class ItemServiceTest {
 
+    private final Long VALID_ID=1L;
+    private final Long INVALID_ID=Long.MAX_VALUE;
+    private Map<Long,Integer> cartItemsCount;
+
     @Autowired
     private ItemRepository itemRepository;
     @Autowired
     private ItemService itemService;
 
+
+    @BeforeEach
+    void setUp() {
+        cartItemsCount= Map.of(1L,1,2L,2,3L,3);
+    }
+
     @Test
     void getItemsPage_shouldReturnItemsPage() {
-        Map<Long, Integer> cartItemsCount = Map.of(1L,1,2L,2,3L,3,4L,4);
         SearchDto givenDto = new SearchDto("test", SortColumn.PRICE, 1, 3, cartItemsCount);
         Page<Item> pageItems=getExpectedPageItems(givenDto.pageNumber(), givenDto.pageSize(),4);
         Specification itemSpec = ItemSpecification.getSpecByTitleOrDescription(givenDto.search());
@@ -54,7 +70,6 @@ class ItemServiceTest {
 
 
     static PageItemsDto getExpectedPageItemsDto(String search, String sort, Integer page, Integer size, boolean hasPrev, boolean hasNext) {
-
         ItemDto itemDto1 = new ItemDto(1L, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         ItemDto itemDto2 = new ItemDto(2L, "testTitle2", "testDesc2", "testImagePath2", 2000L, 1);
         ItemDto itemDto3 = new ItemDto(3L, "testTitle3", "testDesc3", "testImagePath3", 3000L, 1);
@@ -78,6 +93,43 @@ class ItemServiceTest {
 
          return new PageImpl<Item>(content, PageRequest.of(pageNumber,pageSize), total);
     }
+
+    @Test
+    void  findByIdWithCartCount_shouldReturnDtoSuccess(){
+        Item expectedItem=new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, null);
+        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
+
+        ItemDto actualDto=itemService.findByIdWithCartCount(VALID_ID,cartItemsCount);
+
+        Assertions.assertThat(actualDto)
+                .isNotNull()
+                .hasFieldOrPropertyWithValue(Item.Fields.id,VALID_ID)
+                .hasFieldOrPropertyWithValue(Item.Fields.title,expectedItem.getTitle())
+                .hasFieldOrPropertyWithValue("count",cartItemsCount.get(VALID_ID));
+    }
+
+    @Test
+    void  findByIdWithCartCount_shouldThrowItemNotFoundException_whenIdNotFoundFail(){
+        Mockito.when(itemRepository.findById(INVALID_ID)).thenReturn(Optional.empty());
+
+        Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
+                .isThrownBy(() -> itemService.findByIdWithCartCount(INVALID_ID,cartItemsCount));
+
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    void  findByIdWithCartCount_shouldReturnDtoWithSetDefaultCartCount_whenCartMapNull(Map<Long,Integer> cartItemsCountNotValid){
+        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(new Item()));
+
+        ItemDto actualDto=itemService.findByIdWithCartCount(VALID_ID,cartItemsCountNotValid);
+
+        Assertions.assertThat(actualDto)
+                .isNotNull()
+                .hasFieldOrPropertyWithValue("count",0);
+
+    }
+
 
     @TestConfiguration
     static class TestConfig {
