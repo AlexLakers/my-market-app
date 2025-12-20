@@ -8,8 +8,8 @@
         <tagDatabase tag="full_schema_v1.0"/>
     </changeSet>
 
-    <include file="004-init-items-data.xml" relativeToChangelogFile="true"/>
-    <include file="005-init-orders-data.xml" relativeToChangelogFile="true"/>
-    <include file="006-init-orders-items-data.xml" relativeToChangelogFile="true"/>
+    <include file="004-init-items-data.xml" relativeToChangelogFile="true" context="dev"/>
+    <include file="005-init-orders-data.xml" relativeToChangelogFile="true" context="dev"/>
+    <include file="006-init-orders-items-data.xml" relativeToChangelogFile="true" context="dev"/>
 
 </databaseChangeLog>

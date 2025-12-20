@@ -38,9 +38,6 @@
                 <constraints nullable="false"
                              checkConstraint="price > 0"/>
             </column>
-            <column name="count" type="int">
-                <constraints nullable="false"/>
-            </column>
         </createTable>
         <rollback>
             <dropTable tableName="items"/>
