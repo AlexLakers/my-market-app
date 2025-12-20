@@ -5,26 +5,25 @@ import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ItemService;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
-@RequestMapping(value = {"/", "/items"})
+//@RequestMapping(value = {"/", "/items"})
 public class ItemController {
     private final ItemService itemService;
 
-    @GetMapping
-    public String getItems(@RequestParam(required = false) String search,
+    @GetMapping(value = {"/", "/items"})
+    public String getItems( @RequestParam(required = false) String search,
                            @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
                            @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
                            @RequestParam(required = false, defaultValue = "10") Integer pageSize,
@@ -40,6 +39,14 @@ public class ItemController {
         model.addAttribute("paging", pageItemsDto.pageDto());
 
         return "items";
+    }
+
+    @GetMapping(value = "/items/{id}")
+    public String getItemById( @PathVariable Long id,
+                              @SessionAttribute Map<Long, Integer> cart,
+                              Model model) {
+        model.addAttribute("item",itemService.findByIdWithCartCount(id,cart));
+        return "item";
     }
 
 }
