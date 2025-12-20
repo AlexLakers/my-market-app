@@ -2,6 +2,7 @@ package com.alex.market.service.impl;
 
 import com.alex.market.api.dto.ItemDto;
 import com.alex.market.api.dto.PageDto;
+import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.model.Item;
 import com.alex.market.search.ItemSort;
 import com.alex.market.search.ItemSpecification;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,7 +36,7 @@ public class ItemServiceImpl implements ItemService {
 
         Specification specItems = ItemSpecification.getSpecByTitleOrDescription(searchDto.search());
         Pageable pageable = PageRequest.of(
-                searchDto.pageNumber()-1,
+                searchDto.pageNumber() - 1,
                 searchDto.pageSize(),
                 ItemSort.getOrderByPriceOrTitle(searchDto.sortColumn()));
 
@@ -49,6 +51,16 @@ public class ItemServiceImpl implements ItemService {
         return toPageItemsDto(searchDto, groupItems, pageable.hasPrevious(), pageItems.hasNext());
 
     }
+
+    @Override
+    public ItemDto findByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap) {
+
+        return itemRepository.findById(id)
+                .map(it -> toItemDto(it, cartCountMap))
+                .orElseThrow(() -> new ItemNotFoundException(id));
+
+    }
+
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(
