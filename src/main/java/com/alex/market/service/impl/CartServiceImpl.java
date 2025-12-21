@@ -21,6 +21,13 @@ public class CartServiceImpl implements CartService {
     }
 
 
+    private Integer decrementItemCount(Long itemId, Map<Long, Integer> cartItemsCount) {
+        Integer result = cartItemsCount.computeIfPresent(itemId, (id, currentQty) -> {
+            int newQty = currentQty - 1;
+            return newQty > 0 ? newQty : null;
+        });
+        return result == null ? 0 : result;
+    }
 
 
     @Override
@@ -30,7 +37,7 @@ public class CartServiceImpl implements CartService {
         }
         return switch (cartChangeDto.action()) {
             case PLUS -> incrementItemCount(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
-            default -> null;
+            case MINUS -> decrementItemCount(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
         };
     }
 }
