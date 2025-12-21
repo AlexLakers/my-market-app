@@ -1,5 +1,7 @@
 package com.alex.market.api.controller;
 
+import com.alex.market.api.dto.CartChangeDto;
+import com.alex.market.model.CartAction;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
@@ -13,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Map;
 
@@ -47,6 +50,25 @@ public class ItemController {
                               Model model) {
         model.addAttribute("item",itemService.findByIdWithCartCount(id,cart));
         return "item";
+    }
+
+    @PostMapping("/items")
+    public String incrementCartItemCount(@RequestParam(required = true) Long id,
+                                         @RequestParam(required = false) String search,
+                                         @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
+                                         @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
+                                         @RequestParam(required = false, defaultValue = "10") Integer pageSize,
+                                         @RequestParam(required = true) CartAction action,
+                                         @SessionAttribute Map<Long, Integer> cart,
+                                         RedirectAttributes redirectAttributes
+
+    ){
+        itemService.changeCartItemCount(new CartChangeDto(id,action,cart));
+        redirectAttributes.addAttribute("search", search);
+        redirectAttributes.addAttribute("sort", sort);
+        redirectAttributes.addAttribute("pageSize", pageSize);
+        redirectAttributes.addAttribute("pageNumber", pageNumber);
+        return "redirect:/items";
     }
 
 }
