@@ -6,6 +6,7 @@ import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.*;
+import com.alex.market.service.impl.CartServiceImpl;
 import com.alex.market.service.impl.ItemServiceImpl;
 import jakarta.validation.constraints.NotNull;
 import org.assertj.core.api.Assertions;
@@ -134,13 +135,18 @@ class ItemServiceTest {
     @TestConfiguration
     static class TestConfig {
         @Bean
+        public CartService cartService(){
+            return Mockito.mock(CartService.class);
+        }
+
+        @Bean
         public ItemRepository itemRepository() {
             return Mockito.mock(ItemRepository.class);
         }
 
         @Bean
         public ItemService itemService(ItemRepository itemRepository) {
-            return new ItemServiceImpl(itemRepository);
+            return new ItemServiceImpl(itemRepository,cartService());
         }
     }
 

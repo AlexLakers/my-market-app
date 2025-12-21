@@ -1,5 +1,6 @@
 package com.alex.market.service.impl;
 
+import com.alex.market.api.dto.CartChangeDto;
 import com.alex.market.api.dto.ItemDto;
 import com.alex.market.api.dto.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
@@ -9,6 +10,7 @@ import com.alex.market.search.ItemSpecification;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.SearchDto;
+import com.alex.market.service.CartService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -20,7 +22,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -31,6 +32,7 @@ public class ItemServiceImpl implements ItemService {
     private final static Integer CONTENT_GROUP_SIZE = 3;
 
     private final ItemRepository itemRepository;
+    private final CartService cartService;
 
     public PageItemsDto getItemsPage(SearchDto searchDto) {
 
@@ -61,6 +63,13 @@ public class ItemServiceImpl implements ItemService {
 
     }
 
+    @Override
+    public Integer changeCartItemCount(CartChangeDto cartChangeDto) {
+        if (!itemRepository.existsById(cartChangeDto.itemId())) {
+            throw new ItemNotFoundException(cartChangeDto.itemId());
+        }
+        return cartService.changeItemCount(cartChangeDto);
+    }
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(
@@ -91,7 +100,7 @@ public class ItemServiceImpl implements ItemService {
 
 
     private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
-        Integer count = cart.getOrDefault(item.getId(), 0);
+       Integer count = cart.getOrDefault(item.getId(), 0);
 
         return new ItemDto(item.getId(),
                 item.getTitle(),
