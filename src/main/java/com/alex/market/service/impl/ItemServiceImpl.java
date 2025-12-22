@@ -18,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,12 +65,18 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Integer changeCartItemCount(CartChangeDto cartChangeDto) {
-        if (!itemRepository.existsById(cartChangeDto.itemId())) {
-            throw new ItemNotFoundException(cartChangeDto.itemId());
-        }
-        return cartService.changeItemCount(cartChangeDto);
+    public ItemDto changeCartItemCount(CartChangeDto cartChangeDto) {
+        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
+        Long itemId = cartChangeDto.itemId();
+        return itemRepository.findById(cartChangeDto.itemId())
+                .map(it -> {
+                    cart.put(itemId, cartService.changeItemCount(cartChangeDto));
+                    return toItemDto(it, cart);
+                })
+                .orElseThrow(() -> new ItemNotFoundException(itemId));
+
     }
+
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(
@@ -100,7 +107,8 @@ public class ItemServiceImpl implements ItemService {
 
 
     private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
-       Integer count = cart.getOrDefault(item.getId(), 0);
+        Integer count = cart.getOrDefault(item.getId(), 0);
+        System.out.println(count);
 
         return new ItemDto(item.getId(),
                 item.getTitle(),

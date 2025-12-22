@@ -14,6 +14,6 @@ public interface ItemService {
 
     ItemDto findByIdWithCartCount(Long id, Map<Long,Integer> cartCountMap);
 
-    Integer changeCartItemCount(CartChangeDto cartChangeDto);
+    ItemDto changeCartItemCount(CartChangeDto cartChangeDto);
 
 }
