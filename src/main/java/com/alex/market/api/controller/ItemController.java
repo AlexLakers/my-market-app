@@ -48,14 +48,14 @@ public class ItemController {
     }
 
     @PostMapping("/items")
-    public String changeCartItemCount(@RequestParam(required = true) Long id,
-                                      @RequestParam(required = false) String search,
-                                      @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
-                                      @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
-                                      @RequestParam(required = false, defaultValue = "10") Integer pageSize,
-                                      @RequestParam(required = true) CartAction action,
-                                      @SessionAttribute Map<Long, Integer> cart,
-                                      RedirectAttributes redirectAttributes
+    public String changeCartItemCountForItemsPage(@RequestParam(required = true) Long id,
+                                                  @RequestParam(required = false) String search,
+                                                  @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
+                                                  @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
+                                                  @RequestParam(required = false, defaultValue = "10") Integer pageSize,
+                                                  @RequestParam(required = true) CartAction action,
+                                                  @SessionAttribute Map<Long, Integer> cart,
+                                                  RedirectAttributes redirectAttributes
 
     ){
         itemService.changeCartItemCount(new CartChangeDto(id,action,cart));
@@ -64,6 +64,17 @@ public class ItemController {
         redirectAttributes.addAttribute("pageSize", pageSize);
         redirectAttributes.addAttribute("pageNumber", pageNumber);
         return "redirect:/items";
+    }
+
+    @PostMapping("/items/{id}")
+    public String changeCartItemCountForItemPage(@PathVariable Long id,
+                                                 @RequestParam CartAction action,
+                                                 @SessionAttribute Map<Long, Integer> cart,
+                                                 Model model
+                                                 ){
+        model.addAttribute("item",itemService.changeCartItemCount(new CartChangeDto(id,action,cart)));
+
+        return "item";
     }
 
 }

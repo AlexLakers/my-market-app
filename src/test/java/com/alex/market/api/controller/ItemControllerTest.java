@@ -25,6 +25,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.SessionAttribute;
 
 import java.util.*;
 
@@ -107,9 +112,10 @@ class ItemControllerTest {
     }
 
     @Test
-    void changeCartItemCount_shouldRedirectItemsPageWithAttrs() throws Exception {
+    void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() throws Exception {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        Mockito.when(itemService.changeCartItemCount(givenDto)).thenReturn(3);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
+        Mockito.when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/items")
                 .param("id", VALID_ID.toString())
@@ -122,6 +128,20 @@ class ItemControllerTest {
                 .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
                 .andExpect(MockMvcResultMatchers.view().name("redirect:/items"));
 
+    }
+    @Test
+    public void changeCartItemCountForItemPage() throws Exception {
+        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
+        Mockito.when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/items/{itemId}",VALID_ID)
+                .sessionAttr("cart", cartItemsCount)
+                .param("action", CartAction.PLUS.name()))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.view().name("item"))
+                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
+                .andExpect(MockMvcResultMatchers.model().attributeExists("item"));
     }
 
 
