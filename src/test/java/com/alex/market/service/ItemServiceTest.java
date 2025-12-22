@@ -142,7 +142,6 @@ class ItemServiceTest {
     @Test
     void changeCartItemCount_shouldCallCartServiceMethodSuccess() {
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID+1));
-        System.out.println(cartItemsCount.get(VALID_ID)+1);
         Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
