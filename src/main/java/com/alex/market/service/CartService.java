@@ -7,6 +7,6 @@ import java.util.Map;
 
 public interface CartService {
     Integer changeItemCount(CartChangeDto cartChangeDto);
-    CartDto getCartItems(Map<Long,Integer> cartItemsCount);
+    CartDto getItems(Map<Long,Integer> cartItemsCount);
 
 }

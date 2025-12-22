@@ -47,11 +47,11 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public CartDto getCartItems(Map<Long, Integer> cartItemsCount) {
+    public CartDto getItems(Map<Long, Integer> cartItemsCount) {
         List<Item> items=itemRepository.findAllById(cartItemsCount.keySet());
 
         Long totalPrice=items.stream()
-                .map(Item::getPrice)
+                .map(it -> it.getPrice() * cartItemsCount.getOrDefault(it.getId(), 0))
                 .reduce(0L, Long::sum);
 
         List<ItemDto> itemsDtos=items.stream()
@@ -60,6 +60,7 @@ public class CartServiceImpl implements CartService {
 
         return toCartDto(itemsDtos,totalPrice);
     }
+
     private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
         Integer count = cart.getOrDefault(item.getId(), 0);
 

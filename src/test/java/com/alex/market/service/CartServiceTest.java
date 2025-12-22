@@ -1,8 +1,11 @@
 package com.alex.market.service;
 
 import com.alex.market.api.dto.CartChangeDto;
+import com.alex.market.api.dto.CartDto;
+import com.alex.market.api.dto.ItemDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.model.CartAction;
+import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.service.impl.CartServiceImpl;
 import org.assertj.core.api.Assertions;
@@ -17,7 +20,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,7 +37,6 @@ class CartServiceTest {
     void setUp() {
         cartItemsCount = new HashMap<>();
         cartItemsCount.put(VALID_ID,2);
-        cartItemsCount.put(2L,3);
 
     }
     @Autowired
@@ -61,6 +65,18 @@ class CartServiceTest {
 
         Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
                         .isThrownBy(()->cartService.changeItemCount(givenDto));
+    }
+
+    @Test
+    void getItems_shouldReturnItemsInCartSuccess() {
+        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
+        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
+        CartDto expectedDto=new CartDto(List.of(itemDto),2000L);
+        Mockito.when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(List.of(expectedItem));
+
+        CartDto actualDto=cartService.getItems(cartItemsCount);
+
+        Assertions.assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
 
 
