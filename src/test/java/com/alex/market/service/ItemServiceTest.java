@@ -1,6 +1,7 @@
 package com.alex.market.service;
 
 import com.alex.market.api.dto.CartChangeDto;
+import com.alex.market.api.dto.CartDto;
 import com.alex.market.api.dto.ItemDto;
 import com.alex.market.api.dto.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
@@ -140,14 +141,17 @@ class ItemServiceTest {
 
     @Test
     void changeCartItemCount_shouldCallCartServiceMethodSuccess() {
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID+1));
+        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        Mockito.when(itemRepository.existsById(VALID_ID)).thenReturn(true);
-        Mockito.when(cartService.changeItemCount(Mockito.any(CartChangeDto.class))).thenReturn(1);
+        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
+        Mockito.when(cartService.changeItemCount(Mockito.any(CartChangeDto.class))).thenReturn(2);
 
-        itemService.changeCartItemCount(givenDto);
+        ItemDto actualDto=itemService.changeCartItemCount(givenDto);
 
-        Mockito.verify(itemRepository, Mockito.times(1)).existsById(VALID_ID);
-        Mockito.verify(cartService, Mockito.times(1)).changeItemCount(givenDto);
+        Assertions.assertThat(actualDto)
+                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID)
+                .hasFieldOrPropertyWithValue("count", expectedDto.count());
     }
 
 
