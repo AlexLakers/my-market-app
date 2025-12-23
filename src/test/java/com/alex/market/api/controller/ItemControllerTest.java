@@ -126,6 +126,7 @@ class ItemControllerTest {
                 .param("pageSize", "3")
                 .sessionAttr("cart", cartItemsCount))
                 .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
+                .andExpect(MockMvcResultMatchers.redirectedUrl("/items?search=test&sort=NO&pageSize=3&pageNumber=1"))
                 .andExpect(MockMvcResultMatchers.view().name("redirect:/items"));
 
     }
