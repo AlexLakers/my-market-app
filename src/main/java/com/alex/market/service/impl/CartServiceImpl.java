@@ -43,22 +43,28 @@ public class CartServiceImpl implements CartService {
         return switch (cartChangeDto.action()) {
             case PLUS -> incrementItemCount(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
             case MINUS -> decrementItemCount(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
+            case DELETE -> deleteItem(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
         };
+    }
+
+    public Integer deleteItem(Long itemId, Map<Long, Integer> cartItemsCount) {
+        cartItemsCount.remove(itemId);
+        return 0;
     }
 
     @Override
     public CartDto getItems(Map<Long, Integer> cartItemsCount) {
-        List<Item> items=itemRepository.findAllById(cartItemsCount.keySet());
+        List<Item> items = itemRepository.findAllById(cartItemsCount.keySet());
 
-        Long totalPrice=items.stream()
+        Long totalPrice = items.stream()
                 .map(it -> it.getPrice() * cartItemsCount.getOrDefault(it.getId(), 0))
                 .reduce(0L, Long::sum);
 
-        List<ItemDto> itemsDtos=items.stream()
-                .map(entity->toItemDto(entity,cartItemsCount))
+        List<ItemDto> itemsDtos = items.stream()
+                .map(entity -> toItemDto(entity, cartItemsCount))
                 .toList();
 
-        return toCartDto(itemsDtos,totalPrice);
+        return toCartDto(itemsDtos, totalPrice);
     }
 
     private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
@@ -74,7 +80,7 @@ public class CartServiceImpl implements CartService {
     }
 
     private CartDto toCartDto(List<ItemDto> items, Long totalPrice) {
-        return new CartDto( items,totalPrice);
+        return new CartDto(items, totalPrice);
 
     }
 }

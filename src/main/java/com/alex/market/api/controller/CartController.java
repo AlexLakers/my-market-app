@@ -19,7 +19,8 @@ public class CartController {
 
     private final CartService cartService;
     @GetMapping("/items")
-    public String getItems(Model model,  @SessionAttribute Map<Long, Integer> cart){
+    public String getItems(Model model,
+                           @SessionAttribute Map<Long, Integer> cart){
         CartDto cartDto=cartService.getItems(cart);
         model.addAttribute("items", cartDto.items());
         model.addAttribute("total", cartDto.total());
@@ -30,8 +31,7 @@ public class CartController {
     @PostMapping("/items")
     public String changeCartItemCountForCartPage(@RequestParam Long id,
                                                  @RequestParam CartAction action,
-                                                 @SessionAttribute Map<Long, Integer> cart,
-                                                 Model model
+                                                 @SessionAttribute Map<Long, Integer> cart
     ){
         cartService.changeItemCount(new CartChangeDto(id,action,cart));
         return "redirect:/cart/items";
