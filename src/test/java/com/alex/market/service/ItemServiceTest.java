@@ -1,24 +1,19 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.CartChangeDto;
-import com.alex.market.api.dto.CartDto;
-import com.alex.market.api.dto.ItemDto;
-import com.alex.market.api.dto.PageDto;
+import com.alex.market.api.dto.input.CartChangeDto;
+import com.alex.market.api.dto.output.ItemDto;
+import com.alex.market.api.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.*;
-import com.alex.market.service.impl.CartServiceImpl;
 import com.alex.market.service.impl.ItemServiceImpl;
-import jakarta.validation.constraints.NotNull;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -169,7 +164,11 @@ class ItemServiceTest {
 
         @Bean
         public ItemService itemService(ItemRepository itemRepository) {
-            return new ItemServiceImpl(itemRepository, cartService());
+            return new ItemServiceImpl(itemRepository, cartService(),fileService());
+        }
+        @Bean
+        public FileService fileService() {
+            return Mockito.mock(FileService.class);
         }
     }
 

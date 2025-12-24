@@ -1,9 +1,11 @@
 package com.alex.market.service.impl;
 
-import com.alex.market.api.dto.CartChangeDto;
-import com.alex.market.api.dto.ItemDto;
-import com.alex.market.api.dto.PageDto;
+import com.alex.market.api.dto.input.CartChangeDto;
+import com.alex.market.api.dto.input.ItemCreateDto;
+import com.alex.market.api.dto.output.ItemDto;
+import com.alex.market.api.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
+import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.model.Item;
 import com.alex.market.search.ItemSort;
 import com.alex.market.search.ItemSpecification;
@@ -11,18 +13,17 @@ import com.alex.market.search.PageItemsDto;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.SearchDto;
 import com.alex.market.service.CartService;
+import com.alex.market.service.FileService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -34,6 +35,7 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final CartService cartService;
+    private final FileService fileService;
 
     public PageItemsDto getItemsPage(SearchDto searchDto) {
 
@@ -77,6 +79,38 @@ public class ItemServiceImpl implements ItemService {
 
     }
 
+    @Override
+    @SneakyThrows
+    public ItemDto createItem(ItemCreateDto itemCreateDto) {
+
+        if(itemRepository.existsByTitle(itemCreateDto.title())) {
+            throw new TitleAlreadyExistsException(itemCreateDto.title());
+        }
+        String imageName=generateNewImagePath(itemCreateDto.title(),itemCreateDto.image().getOriginalFilename());
+
+        String imagePath=fileService.saveFile(itemCreateDto.image(), imageName);
+
+        Item savedItem=itemRepository.save(toItem(itemCreateDto, imagePath));
+        return toItemDto(savedItem,new HashMap<>());
+    }
+
+    private String generateNewImagePath(String title, String origName) {
+        String type = getTypeFromFileName(origName);
+        return title + type;
+
+
+    }
+
+    private String getTypeFromFileName(String fileName) {
+        return Optional.ofNullable(fileName)
+                .filter(name -> name.contains("."))
+                .map(name -> name.substring(name.lastIndexOf(".")))
+                .orElse("");
+    }
+
+    private Item toItem(ItemCreateDto dto,String imgPath){
+        return Item.builder().title(dto.title()).description(dto.description()).price(dto.price()).imgPath(imgPath).build();
+    }
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(
@@ -108,7 +142,6 @@ public class ItemServiceImpl implements ItemService {
 
     private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
         Integer count = cart.getOrDefault(item.getId(), 0);
-        System.out.println(count);
 
         return new ItemDto(item.getId(),
                 item.getTitle(),
