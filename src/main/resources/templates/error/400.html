@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>404</title>
+    <title>500</title>
     <style>
         body {
             margin: 100px auto;
@@ -29,8 +29,8 @@
     </style>
 </head>
 <body>
-<h1>404</h1>
-<p>Страница не найдена</p>
+<h1>400</h1>
+<p>Неверный запрос: <span th:text="${error}">Bad request</p>
 <p><a href="/">← Вернуться на главную</a></p>
 </body>
 </html>
