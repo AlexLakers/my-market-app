@@ -1,8 +1,8 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.CartChangeDto;
-import com.alex.market.api.dto.CartDto;
-import com.alex.market.api.dto.ItemDto;
+import com.alex.market.api.dto.input.CartChangeDto;
+import com.alex.market.api.dto.output.CartDto;
+import com.alex.market.api.dto.output.ItemDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
@@ -23,8 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringJUnitConfig
 class CartServiceTest {

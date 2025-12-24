@@ -1,6 +1,6 @@
 package com.alex.market.api.controller;
 
-import com.alex.market.api.dto.ItemCreateDto;
+import com.alex.market.api.dto.input.ItemCreateDto;
 import com.alex.market.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +11,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.util.Map;
 
 
 @RequiredArgsConstructor

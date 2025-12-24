@@ -1,7 +1,7 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.CartChangeDto;
-import com.alex.market.api.dto.CartDto;
+import com.alex.market.api.dto.input.CartChangeDto;
+import com.alex.market.api.dto.output.CartDto;
 
 import java.util.Map;
 
