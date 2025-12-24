@@ -1,4 +1,15 @@
 package com.alex.market.api.dto;
 
-public record ItemCreateDto(String title, String description, String imgPath, Long price) {
+import com.alex.market.validation.ValidImage;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import org.hibernate.validator.constraints.Length;
+import org.springframework.context.MessageSource;
+import org.springframework.web.multipart.MultipartFile;
+
+public record ItemCreateDto(@NotBlank String title,
+                            @NotBlank @Length String description,
+                            @ValidImage MultipartFile image,
+                            @Positive @NotNull Long price) {
 }
