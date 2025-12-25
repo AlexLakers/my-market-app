@@ -3,6 +3,8 @@ package com.alex.market.service.impl;
 import com.alex.market.api.dto.output.ItemDto;
 import com.alex.market.api.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
+import com.alex.market.mapper.ItemMapper;
+import com.alex.market.mapper.OrderMapper;
 import com.alex.market.model.Item;
 import com.alex.market.model.Order;
 import com.alex.market.model.OrderItem;
@@ -22,6 +24,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final CartService cartService;
+    private final OrderMapper orderMapper;
 
     @Override
     public OrderDto createOrder(Map<Long, Integer> cartItemsCounts) {
@@ -37,20 +40,21 @@ public class OrderServiceImpl implements OrderService {
                         .sum()
         );
 
-        Order savedOrder = orderRepository.save(order);
-        return toOrderDto(savedOrder);
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
+/*
 
     private OrderDto toOrderDto(Order order) {
         List<ItemDto> itemDtos = order.getOrderItems().stream()
-                .map(this::toItemDtoFromOrderItem)
+                .map(itemMapper::toDtoFromOrderItem)
                 .collect(Collectors.toList());
 
         return new OrderDto(order.getId(), itemDtos, order.getTotalSum());
     }
+*/
 
-    private ItemDto toItemDtoFromOrderItem(OrderItem orderItem) {
+ /*   private ItemDto toItemDtoFromOrderItem(OrderItem orderItem) {
         Item item = orderItem.getItem();
         return new ItemDto(
                 item.getId(),
@@ -60,6 +64,19 @@ public class OrderServiceImpl implements OrderService {
                 orderItem.getHistoryPrice(),
                 orderItem.getCount()
         );
+    }*/
+
+
+    @Override
+    public OrderDto getOrder(Long orderId) {
+        return orderRepository.findById(orderId)
+                .map(orderMapper::toDto).orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+
+    @Override
+    public List<OrderDto> getOrders() {
+        return orderRepository.findAll().stream()
+                .map(orderMapper::toDto).collect(Collectors.toList());
     }
 
 }
