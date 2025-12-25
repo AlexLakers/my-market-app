@@ -48,7 +48,7 @@ class CartControllerTest {
     void getItems_shouldReturnViewAndModelWithDataFromCart() throws Exception {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L);
-        Mockito.when(cartService.getItems(cartItemsCount)).thenReturn(expectedDto);
+        Mockito.when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/cart/items")
                         .sessionAttr("cart", cartItemsCount))
@@ -63,7 +63,7 @@ class CartControllerTest {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L);
         Mockito.when(cartService.changeItemCount(givenDto)).thenReturn(itemDto.count());
-        Mockito.when(cartService.getItems(cartItemsCount)).thenReturn(expectedDto);
+        Mockito.when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/cart/items")
                         .param("id", String.valueOf(VALID_ID))

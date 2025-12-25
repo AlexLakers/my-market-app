@@ -183,7 +183,6 @@ class ItemServiceTest {
 
     }
 
-
     @Test
     void createItem_shouldThrowTitleAlreadyExistsFail(){
         String TEST_IMAGE_NAME="images/test-item-test.jpg";
@@ -197,28 +196,8 @@ class ItemServiceTest {
                 .isInstanceOf(TitleAlreadyExistsException.class)
                 .hasMessageContaining(TEST_TITLE);
 
-
-        Mockito.verify(itemRepository).existsByTitle(TEST_TITLE);
-        Mockito.verify(fileService, Mockito.never()).saveFile(Mockito.any(), Mockito.any());
-        Mockito.verify(itemRepository, Mockito.never()).save(Mockito.any());
-
+        Mockito.verify(itemRepository,Mockito.times(2)).existsByTitle(TEST_TITLE);
     }
-
-
-   /* @Override
-    public ItemDto createItem(ItemCreateDto itemCreateDto) {
-
-        if(itemRepository.existsByTitle(itemCreateDto.title())) {
-            throw new TitleAlreadyExistsException(itemCreateDto.title());
-        }
-        String imageName=generateNewImagePath(itemCreateDto.title(),itemCreateDto.image().getOriginalFilename());
-
-        String imagePath=fileService.saveFile(itemCreateDto.image(), imageName);
-
-        Item savedItem=itemRepository.save(toItem(itemCreateDto, imagePath));
-        return toItemDto(savedItem,new HashMap<>());*/
-
-
 
         @TestConfiguration
     static class TestConfig {

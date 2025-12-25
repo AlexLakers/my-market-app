@@ -3,6 +3,7 @@ package com.alex.market.model;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,7 +15,7 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@ToString(exclude = "orders")
+@ToString(exclude = "orderItems")
 @EqualsAndHashCode(of = "id")
 @Builder
 @Table(name = "items")
@@ -38,8 +39,9 @@ public class Item {
     private Long price;
 
     @Builder.Default
-    @ManyToMany(mappedBy = "items")
-    private List<Order> orders = new ArrayList<>();
+    @OneToMany(mappedBy = "item")
+    @BatchSize(size = 50)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
 }
 

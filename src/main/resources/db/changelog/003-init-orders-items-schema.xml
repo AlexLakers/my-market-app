@@ -1,6 +1,19 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="create_orders_items_sequence" author="alexlakers">
+        <preConditions>
+            <not>
+                <sequenceExists sequenceName="orders_items_sequence"/>
+            </not>
+        </preConditions>
+        <createSequence sequenceName="orders_items_sequence" incrementBy="1"/>
+        <rollback>
+            <dropSequence sequenceName="orders_items_sequence"/>
+        </rollback>
+    </changeSet>
+
     <changeSet id="create_orders_items_table" author="alexlakers">
         <preConditions>
             <not>
@@ -8,10 +21,21 @@
             </not>
         </preConditions>
         <createTable tableName="orders_items">
+            <column name="id" type="bigint"
+                defaultValueSequenceNext="orders_items_sequence">
+                <constraints primaryKey="true"/>
+            </column>
             <column name="item_id" type="bigint">
                 <constraints nullable="false"/>
             </column>
             <column name="order_id" type="bigint">
+                <constraints nullable="false"/>
+            </column>
+            <column name="history_price" type="bigint">
+                <constraints nullable="false"
+                             checkConstraint="history_price > 0"/>
+            </column>
+            <column name="count" type="int">
                 <constraints nullable="false"/>
             </column>
         </createTable>

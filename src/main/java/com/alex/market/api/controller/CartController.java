@@ -3,7 +3,6 @@ package com.alex.market.api.controller;
 import com.alex.market.api.dto.input.CartChangeDto;
 import com.alex.market.api.dto.input.InputFormCart;
 import com.alex.market.api.dto.output.CartDto;
-import com.alex.market.api.dto.input.InputFormItem;
 import com.alex.market.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -25,7 +24,7 @@ public class CartController {
     @GetMapping("/items")
     public String getItems(Model model,
                            @SessionAttribute Map<Long, Integer> cart){
-        CartDto cartDto=cartService.getItems(cart);
+        CartDto cartDto=cartService.getItemsCartWithTotal(cart);
         model.addAttribute("items", cartDto.items());
         model.addAttribute("total", cartDto.total());
         return "cart";

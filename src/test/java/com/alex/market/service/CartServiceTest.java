@@ -66,13 +66,13 @@ class CartServiceTest {
     }
 
     @Test
-    void getItems_shouldReturnItemsInCartSuccess() {
+    void getItemsCartWithTotal_shouldReturnItemsCartSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
         Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
         CartDto expectedDto=new CartDto(List.of(itemDto),2000L);
         Mockito.when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(List.of(expectedItem));
 
-        CartDto actualDto=cartService.getItems(cartItemsCount);
+        CartDto actualDto=cartService.getItemsCartWithTotal(cartItemsCount);
 
         Assertions.assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
