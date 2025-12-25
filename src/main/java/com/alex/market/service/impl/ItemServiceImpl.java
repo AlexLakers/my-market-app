@@ -80,7 +80,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @SneakyThrows
     public ItemDto createItem(ItemCreateDto itemCreateDto) {
 
         if(itemRepository.existsByTitle(itemCreateDto.title())) {
