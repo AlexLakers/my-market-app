@@ -22,5 +22,19 @@ public class OrderController {
         return "redirect:/orders/" + savedId + "?newOrder=true";
     }
 
+    @GetMapping("/orders/{id}")
+    public String getOrders(@PathVariable Long id,
+                            @RequestParam(defaultValue = "false") boolean newOrder,
+                            Model model) {
+        model.addAttribute("order", orderService.getOrder(id));
+        model.addAttribute("newOrder", newOrder);
+        return "order";
+    }
+
+    @GetMapping("/orders")
+    public String getOrders(Model model) {
+        model.addAttribute("orders", orderService.getOrders());
+        return "orders";
+    }
 
 }
