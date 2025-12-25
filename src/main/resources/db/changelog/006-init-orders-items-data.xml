@@ -10,19 +10,25 @@
         <insert tableName="orders_items">
             <column name="item_id" valueNumeric="1"/>
             <column name="order_id" valueNumeric="1"/>
+            <column name="history_price" valueNumeric="2000"/>
+            <column name="count" valueNumeric="2"/>
         </insert>
         <insert tableName="orders_items">
             <column name="item_id" valueNumeric="2"/>
             <column name="order_id" valueNumeric="2"/>
+            <column name="history_price" valueNumeric="2000"/>
+            <column name="count" valueNumeric="2"/>
         </insert>
         <insert tableName="orders_items">
             <column name="item_id" valueNumeric="3"/>
             <column name="order_id" valueNumeric="3"/>
+            <column name="history_price" valueNumeric="2000"/>
+            <column name="count" valueNumeric="2"/>
         </insert>
 
         <rollback>
             <delete tableName="orders_items">
-                <where>order_id IN (1,2,3)</where>
+                <where>id IN (1,2,3)</where>
             </delete>
         </rollback>
     </changeSet>
