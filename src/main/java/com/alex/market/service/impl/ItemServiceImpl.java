@@ -140,19 +140,6 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
     }
 
-
-/*    private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
-        Integer count = cart.getOrDefault(item.getId(), 0);
-
-        return new ItemDto(item.getId(),
-                item.getTitle(),
-                item.getDescription(),
-                item.getImgPath(),
-                item.getPrice(),
-                count);
-
-    }*/
-
     private ItemDto createEmptyItemDto() {
         return new ItemDto(-1L, "", "", "", 0L, 0);
     }

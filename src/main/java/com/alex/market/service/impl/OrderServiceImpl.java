@@ -43,29 +43,6 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(orderRepository.save(order));
     }
 
-/*
-
-    private OrderDto toOrderDto(Order order) {
-        List<ItemDto> itemDtos = order.getOrderItems().stream()
-                .map(itemMapper::toDtoFromOrderItem)
-                .collect(Collectors.toList());
-
-        return new OrderDto(order.getId(), itemDtos, order.getTotalSum());
-    }
-*/
-
- /*   private ItemDto toItemDtoFromOrderItem(OrderItem orderItem) {
-        Item item = orderItem.getItem();
-        return new ItemDto(
-                item.getId(),
-                item.getTitle(),
-                item.getDescription(),
-                item.getImgPath(),
-                orderItem.getHistoryPrice(),
-                orderItem.getCount()
-        );
-    }*/
-
 
     @Override
     public OrderDto getOrder(Long orderId) {

@@ -6,6 +6,8 @@ import com.alex.market.api.dto.output.ItemDto;
 import com.alex.market.api.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
+import com.alex.market.mapper.ItemMapper;
+import com.alex.market.mapper.ItemMapperImpl;
 import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
@@ -44,6 +46,8 @@ class ItemServiceTest {
     private ItemService itemService;
     @Autowired
     private CartService cartService;
+    @Autowired
+    private ItemMapper itemMapper;
 
 
     @BeforeEach
@@ -58,8 +62,6 @@ class ItemServiceTest {
     void getItemsPage_shouldReturnItemsPage() {
         SearchDto givenDto = new SearchDto("test", SortColumn.PRICE, 1, 3, cartItemsCount);
         Page<Item> pageItems = getExpectedPageItems(givenDto.pageNumber(), givenDto.pageSize(), 4);
-        Specification itemSpec = ItemSpecification.getSpecByTitleOrDescription(givenDto.search());
-        Sort itemSort = ItemSort.getOrderByPriceOrTitle(givenDto.sortColumn());
         PageItemsDto pageItemsDto = getExpectedPageItemsDto(givenDto.search(), givenDto.sortColumn().name(), pageItems.getNumber(), pageItems.getSize(), pageItems.hasPrevious(), pageItems.hasNext());
         Mockito.when(itemRepository.findAll(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(pageItems);
 
@@ -213,7 +215,11 @@ class ItemServiceTest {
 
         @Bean
         public ItemService itemService(ItemRepository itemRepository) {
-            return new ItemServiceImpl(itemRepository, cartService(),fileService());
+            return new ItemServiceImpl(itemRepository, cartService(),fileService(),itemMapper());
+        }
+        @Bean
+        public ItemMapper itemMapper() {
+            return new ItemMapperImpl();
         }
         @Bean
         public FileService fileService() {

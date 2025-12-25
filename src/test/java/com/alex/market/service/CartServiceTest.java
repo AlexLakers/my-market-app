@@ -4,6 +4,8 @@ import com.alex.market.api.dto.input.CartChangeDto;
 import com.alex.market.api.dto.output.CartDto;
 import com.alex.market.api.dto.output.ItemDto;
 import com.alex.market.exception.ItemNotFoundException;
+import com.alex.market.mapper.ItemMapper;
+import com.alex.market.mapper.ItemMapperImpl;
 import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
@@ -42,6 +44,9 @@ class CartServiceTest {
 
     @Autowired
     private CartService cartService;
+
+    @Autowired
+    private ItemMapper itemMapper;
 
     @ParameterizedTest
     @CsvSource({"PLUS, 3",
@@ -87,8 +92,13 @@ class CartServiceTest {
         }
 
         @Bean
+        public ItemMapper itemMapper() {
+            return new ItemMapperImpl();
+        }
+
+        @Bean
         public CartService cartService() {
-            return new CartServiceImpl(itemRepository());
+            return new CartServiceImpl(itemRepository(),itemMapper());
         }
     }
 }
