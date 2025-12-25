@@ -33,7 +33,7 @@ public class OrderServiceImpl implements OrderService {
 
         order.setTotalSum(
                 order.getOrderItems().stream()
-                        .mapToLong(oi->oi.getHistoryPrice() * oi.getCount())
+                        .mapToLong(oi -> oi.getHistoryPrice() * oi.getCount())
                         .sum()
         );
 
@@ -57,7 +57,7 @@ public class OrderServiceImpl implements OrderService {
                 item.getTitle(),
                 item.getDescription(),
                 item.getImgPath(),
-                orderItem.getHistoryPrice(), // историческая цена, а не текущая
+                orderItem.getHistoryPrice(),
                 orderItem.getCount()
         );
     }
