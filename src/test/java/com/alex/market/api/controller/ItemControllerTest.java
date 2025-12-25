@@ -1,17 +1,15 @@
 package com.alex.market.api.controller;
 
-import com.alex.market.api.dto.CartChangeDto;
-import com.alex.market.api.dto.ItemDto;
-import com.alex.market.api.dto.PageDto;
+import com.alex.market.api.dto.input.CartChangeDto;
+import com.alex.market.api.dto.output.ItemDto;
+import com.alex.market.api.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.model.CartAction;
-import com.alex.market.model.Item;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ItemService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -25,11 +23,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.SessionAttribute;
 
 import java.util.*;
 

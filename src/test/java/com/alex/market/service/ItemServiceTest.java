@@ -1,31 +1,30 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.CartChangeDto;
-import com.alex.market.api.dto.CartDto;
-import com.alex.market.api.dto.ItemDto;
-import com.alex.market.api.dto.PageDto;
+import com.alex.market.api.dto.input.CartChangeDto;
+import com.alex.market.api.dto.input.ItemCreateDto;
+import com.alex.market.api.dto.output.ItemDto;
+import com.alex.market.api.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
+import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.*;
-import com.alex.market.service.impl.CartServiceImpl;
 import com.alex.market.service.impl.ItemServiceImpl;
-import jakarta.validation.constraints.NotNull;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.web.multipart.MultipartFile;
 
 
 import java.util.*;
@@ -37,6 +36,8 @@ class ItemServiceTest {
     private final Long INVALID_ID = Long.MAX_VALUE;
     private Map<Long, Integer> cartItemsCount;
 
+    @Autowired
+    private FileService fileService;
     @Autowired
     private ItemRepository itemRepository;
     @Autowired
@@ -154,8 +155,72 @@ class ItemServiceTest {
                 .hasFieldOrPropertyWithValue("count", expectedDto.count());
     }
 
+    @Test
+    void createItem_shouldSaveItemAndReturnSavedItemDtoSuccess(){
+        String TEST_IMAGE_NAME="images/test-item-test.jpg";
+        String TEST_TITLE="testTitle";
+        byte[] TEST_IMAGE_CONTENT="testImageContent".getBytes();
+        MultipartFile mockImage = new MockMultipartFile("image", TEST_IMAGE_NAME, "image/jpeg", TEST_IMAGE_CONTENT);
+        ItemCreateDto itemCreateDto = new ItemCreateDto(TEST_TITLE, "testDesc", mockImage, 1000L);
+        String expectedImagePath = "images/test-item-test.jpg";
+        Item expectedSavedItem = new Item(VALID_ID,TEST_TITLE,TEST_IMAGE_NAME,TEST_IMAGE_NAME,1000L,null);
 
-    @TestConfiguration
+        Mockito.when(itemRepository.existsByTitle(TEST_TITLE)).thenReturn(false);
+        Mockito.when(fileService.saveFile(Mockito.eq(mockImage), Mockito.anyString()))
+                .thenReturn(expectedImagePath);
+        Mockito.when(itemRepository.save(Mockito.any(Item.class))).thenReturn(expectedSavedItem);
+        ItemDto result = itemService.createItem(itemCreateDto);
+
+
+        Assertions.assertThat(result).isNotNull();
+        Assertions.assertThat(result.id()).isEqualTo(1L);
+        Assertions.assertThat(result.title()).isEqualTo(TEST_TITLE);
+        Assertions.assertThat(result.imgPath()).isEqualTo(expectedImagePath);
+
+        Mockito.verify(itemRepository).existsByTitle(TEST_TITLE);
+        Mockito.verify(fileService).saveFile(Mockito.eq(mockImage), Mockito.anyString());
+        Mockito.verify(itemRepository).save(Mockito.any(Item.class));
+
+    }
+
+
+    @Test
+    void createItem_shouldThrowTitleAlreadyExistsFail(){
+        String TEST_IMAGE_NAME="images/test-item-test.jpg";
+        String TEST_TITLE="testTitle";
+        byte[] TEST_IMAGE_CONTENT="testImageContent".getBytes();
+        MultipartFile mockImage = new MockMultipartFile("image", TEST_IMAGE_NAME, "image/jpeg", TEST_IMAGE_CONTENT);
+        ItemCreateDto itemCreateDto = new ItemCreateDto(TEST_TITLE, "testDesc", mockImage, 1000L);
+        Mockito.when(itemRepository.existsByTitle(TEST_TITLE)).thenReturn(true);
+
+        Assertions.assertThatThrownBy(() -> itemService.createItem(itemCreateDto))
+                .isInstanceOf(TitleAlreadyExistsException.class)
+                .hasMessageContaining(TEST_TITLE);
+
+
+        Mockito.verify(itemRepository).existsByTitle(TEST_TITLE);
+        Mockito.verify(fileService, Mockito.never()).saveFile(Mockito.any(), Mockito.any());
+        Mockito.verify(itemRepository, Mockito.never()).save(Mockito.any());
+
+    }
+
+
+   /* @Override
+    public ItemDto createItem(ItemCreateDto itemCreateDto) {
+
+        if(itemRepository.existsByTitle(itemCreateDto.title())) {
+            throw new TitleAlreadyExistsException(itemCreateDto.title());
+        }
+        String imageName=generateNewImagePath(itemCreateDto.title(),itemCreateDto.image().getOriginalFilename());
+
+        String imagePath=fileService.saveFile(itemCreateDto.image(), imageName);
+
+        Item savedItem=itemRepository.save(toItem(itemCreateDto, imagePath));
+        return toItemDto(savedItem,new HashMap<>());*/
+
+
+
+        @TestConfiguration
     static class TestConfig {
         @Bean
         public CartService cartService() {
@@ -169,7 +234,11 @@ class ItemServiceTest {
 
         @Bean
         public ItemService itemService(ItemRepository itemRepository) {
-            return new ItemServiceImpl(itemRepository, cartService());
+            return new ItemServiceImpl(itemRepository, cartService(),fileService());
+        }
+        @Bean
+        public FileService fileService() {
+            return Mockito.mock(FileService.class);
         }
     }
 

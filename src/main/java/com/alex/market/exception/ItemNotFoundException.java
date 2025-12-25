@@ -4,6 +4,9 @@ public class ItemNotFoundException extends RuntimeException {
     public ItemNotFoundException(Long id) {
         this("The item with id: {%d} is not found".formatted(id));
     }
+    public ItemNotFoundException(Long id,Throwable cause) {
+        this("The item with id: {%d} is not found".formatted(id),cause);
+    }
     public ItemNotFoundException(String message) {
         super(message);
     }

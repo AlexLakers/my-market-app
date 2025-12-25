@@ -1,6 +1,4 @@
-package com.alex.market.api.dto;
-
-import com.alex.market.model.Item;
+package com.alex.market.api.dto.output;
 
 import java.util.List;
 

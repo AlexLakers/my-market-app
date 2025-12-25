@@ -14,4 +14,6 @@ public interface ItemRepository extends JpaRepository<Item, Long> , JpaSpecifica
 
     Page<Item> findAll(Specification spec, Pageable pageable);
 
+    boolean existsByTitle(String title);
+
 }
