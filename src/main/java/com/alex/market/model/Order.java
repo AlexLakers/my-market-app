@@ -24,14 +24,22 @@ public class Order {
     @SequenceGenerator(name = "orders_seq", sequenceName = "orders_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "total_sum", nullable = false)
     private Long totalSum;
 
     @Builder.Default
-    @ManyToMany
-    @JoinTable(name = "orders_items",
-            joinColumns = @JoinColumn(name = "order_id"),
-            inverseJoinColumns = @JoinColumn(name = "item_id"))
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
-    private List<Item> items = new ArrayList<>();
+    private List<OrderItem> orderItems = new ArrayList<>();
+
+    public void addItem(Item item, Integer count) {
+        OrderItem orderItem = OrderItem.builder()
+                .item(item)
+                .count(count)
+                .historyPrice(item.getPrice())
+                .order(this)
+                .build();
+        this.orderItems.add(orderItem);
+
+    }
 }
