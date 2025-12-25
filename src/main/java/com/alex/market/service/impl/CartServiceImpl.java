@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,8 +53,8 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public CartDto getItems(Map<Long, Integer> cartItemsCount) {
-        List<Item> items = itemRepository.findAllById(cartItemsCount.keySet());
+    public CartDto getItemsCartWithTotal(Map<Long, Integer> cartItemsCount) {
+        List<Item> items = getItemsByCart(cartItemsCount);
 
         Long totalPrice = items.stream()
                 .map(it -> it.getPrice() * cartItemsCount.getOrDefault(it.getId(), 0))
@@ -64,6 +65,19 @@ public class CartServiceImpl implements CartService {
                 .toList();
 
         return toCartDto(itemsDtos, totalPrice);
+    }
+
+    @Override
+    public Map<Item, Integer> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount) {
+        return getItemsByCart(cartItemsCount).stream()
+                .collect(Collectors.toMap(
+                        item -> item,
+                        item -> cartItemsCount.getOrDefault(item.getId(), 0)
+                ));
+    }
+
+    private List<Item> getItemsByCart(Map<Long, Integer> cartItemsCount) {
+        return itemRepository.findAllById(cartItemsCount.keySet());
     }
 
     private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
