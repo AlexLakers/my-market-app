@@ -4,6 +4,7 @@ import com.alex.market.api.dto.input.CartChangeDto;
 import com.alex.market.api.dto.output.CartDto;
 import com.alex.market.api.dto.output.ItemDto;
 import com.alex.market.exception.ItemNotFoundException;
+import com.alex.market.mapper.ItemMapper;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.service.CartService;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 public class CartServiceImpl implements CartService {
 
     private final ItemRepository itemRepository;
+    private final ItemMapper itemMapper;
 
 
     public Integer incrementItemCount(Long itemId, Map<Long, Integer> cartItemsCount) {
@@ -61,10 +63,10 @@ public class CartServiceImpl implements CartService {
                 .reduce(0L, Long::sum);
 
         List<ItemDto> itemsDtos = items.stream()
-                .map(entity -> toItemDto(entity, cartItemsCount))
+                .map(entity -> itemMapper.toDto(entity, cartItemsCount))
                 .toList();
 
-        return toCartDto(itemsDtos, totalPrice);
+        return buildCartDto(itemsDtos, totalPrice);
     }
 
     @Override
@@ -80,19 +82,7 @@ public class CartServiceImpl implements CartService {
         return itemRepository.findAllById(cartItemsCount.keySet());
     }
 
-    private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
-        Integer count = cart.getOrDefault(item.getId(), 0);
-
-        return new ItemDto(item.getId(),
-                item.getTitle(),
-                item.getDescription(),
-                item.getImgPath(),
-                item.getPrice(),
-                count);
-
-    }
-
-    private CartDto toCartDto(List<ItemDto> items, Long totalPrice) {
+    private CartDto buildCartDto(List<ItemDto> items, Long totalPrice) {
         return new CartDto(items, totalPrice);
 
     }

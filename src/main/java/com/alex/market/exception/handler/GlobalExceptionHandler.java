@@ -2,6 +2,7 @@ package com.alex.market.exception.handler;
 
 import com.alex.market.exception.ImageStorageException;
 import com.alex.market.exception.ItemNotFoundException;
+import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -22,6 +23,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ItemNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleItemNotFoundException(ItemNotFoundException ex) {
+        return "error/404";
+    }
+    @ExceptionHandler(OrderNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public String handleOrderNotFoundException(OrderNotFoundException ex) {
         return "error/404";
     }
 

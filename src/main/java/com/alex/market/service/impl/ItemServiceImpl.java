@@ -6,6 +6,7 @@ import com.alex.market.api.dto.output.ItemDto;
 import com.alex.market.api.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
+import com.alex.market.mapper.ItemMapper;
 import com.alex.market.model.Item;
 import com.alex.market.search.ItemSort;
 import com.alex.market.search.ItemSpecification;
@@ -36,6 +37,7 @@ public class ItemServiceImpl implements ItemService {
     private final ItemRepository itemRepository;
     private final CartService cartService;
     private final FileService fileService;
+    private final ItemMapper itemMapper;
 
     public PageItemsDto getItemsPage(SearchDto searchDto) {
 
@@ -48,7 +50,7 @@ public class ItemServiceImpl implements ItemService {
         Page<Item> pageItems = itemRepository.findAll(specItems, pageable);
 
         List<ItemDto> itemsDto = pageItems.getContent().stream()
-                .map(it -> toItemDto(it, searchDto.cartItemsCount()))
+                .map(it -> itemMapper.toDto(it, searchDto.cartItemsCount()))
                 .collect(Collectors.toList());
 
         List<List<ItemDto>> groupItems = groupItems(itemsDto, CONTENT_GROUP_SIZE);
@@ -61,7 +63,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemDto findByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap) {
 
         return itemRepository.findById(id)
-                .map(it -> toItemDto(it, cartCountMap))
+                .map(it -> itemMapper.toDto(it, cartCountMap))
                 .orElseThrow(() -> new ItemNotFoundException(id));
 
     }
@@ -73,7 +75,7 @@ public class ItemServiceImpl implements ItemService {
         return itemRepository.findById(cartChangeDto.itemId())
                 .map(it -> {
                     cart.put(itemId, cartService.changeItemCount(cartChangeDto));
-                    return toItemDto(it, cart);
+                    return itemMapper.toDto(it, cart);
                 })
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
 
@@ -90,7 +92,7 @@ public class ItemServiceImpl implements ItemService {
         String imagePath=fileService.saveFile(itemCreateDto.image(), imageName);
 
         Item savedItem=itemRepository.save(toItem(itemCreateDto, imagePath));
-        return toItemDto(savedItem,new HashMap<>());
+        return itemMapper.toDto(savedItem,new HashMap<>());
     }
 
     private String generateNewImagePath(String title, String origName) {
@@ -136,19 +138,6 @@ public class ItemServiceImpl implements ItemService {
                     return group;
                 })
                 .collect(Collectors.toList());
-    }
-
-
-    private ItemDto toItemDto(Item item, Map<Long, Integer> cart) {
-        Integer count = cart.getOrDefault(item.getId(), 0);
-
-        return new ItemDto(item.getId(),
-                item.getTitle(),
-                item.getDescription(),
-                item.getImgPath(),
-                item.getPrice(),
-                count);
-
     }
 
     private ItemDto createEmptyItemDto() {
