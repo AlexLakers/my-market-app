@@ -6,6 +6,7 @@ import com.alex.market.search.ItemSort;
 import com.alex.market.search.ItemSpecification;
 import com.alex.market.search.SortColumn;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,6 +34,7 @@ import java.util.stream.Stream;
 
 class ItemRepositoryTest {
 
+    private final static Long VALID_ID=1000L;
     @Autowired
     private ItemRepository itemRepository;
 
@@ -61,6 +63,14 @@ class ItemRepositoryTest {
 
         Assertions.assertThat(actual.getContent()).
                 isSortedAccordingTo(givenComparator);
+    }
+
+    @Test
+    void updateImagePath_shouldUpdateImagePath(){
+        itemRepository.updateImagePathById(VALID_ID,"new_image_path");
+
+        Assertions.assertThat(itemRepository.findById(VALID_ID).isPresent()).isTrue();
+        Assertions.assertThat(itemRepository.findById(VALID_ID).get()).hasFieldOrPropertyWithValue("imgPath", "new_image_path");
     }
 
     static Stream<Arguments> getArgsSort() {
