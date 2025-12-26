@@ -17,4 +17,5 @@ public interface ItemService {
 
     ItemDto changeCartItemCount(CartChangeDto cartChangeDto);
 
+    ItemDto createItem(ItemCreateDto itemCreateDto);
 }

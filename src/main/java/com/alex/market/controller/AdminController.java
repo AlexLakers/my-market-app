@@ -2,7 +2,7 @@ package com.alex.market.controller;
 
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
-import com.alex.market.service.AdminService;
+import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Validated
 public class AdminController {
 
-    private final AdminService adminService;
+    private final ItemService itemService;
+    private final ImageService imageService;
 
     @GetMapping("/items")
     public String adminPage() {
@@ -39,7 +40,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("price", item.price());
             return "redirect:/admin/items";
         }
-        ItemDto itemDto = adminService.createItem(item);
+        ItemDto itemDto = itemService.createItem(item);
         redirectAttributes.addFlashAttribute("item", itemDto);
         return "redirect:/admin/images";
     }
@@ -51,9 +52,8 @@ public class AdminController {
 
     @PostMapping(value = "/images/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String uploadImage(@PathVariable Long id, @RequestPart("image") MultipartFile image) {
-        adminService.uploadImage(image, id);
+        imageService.uploadImage(image, id);
         return "redirect:/items/{id}";
-
     }
 
 }

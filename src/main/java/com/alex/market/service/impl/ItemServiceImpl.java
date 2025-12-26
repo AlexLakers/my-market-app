@@ -14,7 +14,6 @@ import com.alex.market.search.PageItemsDto;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.SearchDto;
 import com.alex.market.service.CartService;
-import com.alex.market.service.FileService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,8 +21,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,7 +34,6 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final CartService cartService;
-    private final FileService fileService;
     private final ItemMapper itemMapper;
 
     public PageItemsDto getItemsPage(SearchDto searchDto) {
@@ -83,6 +79,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
 
+
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(
                 groupItems,
@@ -108,6 +105,21 @@ public class ItemServiceImpl implements ItemService {
                     return group;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ItemDto createItem(ItemCreateDto itemCreateDto) {
+
+        if(itemRepository.existsByTitle(itemCreateDto.title())) {
+            throw new TitleAlreadyExistsException(itemCreateDto.title());
+        }
+
+        Item savedItem=itemRepository.save(toItem(itemCreateDto/*, imagePath*/));
+        return itemMapper.toDto(savedItem,new HashMap<>());
+    }
+
+    private Item toItem(ItemCreateDto dto/*String imgPath*/){
+        return Item.builder().title(dto.title()).description(dto.description()).price(dto.price())./*imgPath(imgPath).*/build();
     }
 
     private ItemDto createEmptyItemDto() {

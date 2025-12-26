@@ -18,19 +18,20 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.stream.Collectors;
 
-@ControllerAdvice(basePackages = "com.alex.market.api.controller")
+@ControllerAdvice(basePackages = "com.alex.market.controller")
 public class GlobalExceptionHandler {
+
     @ExceptionHandler(ItemNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleItemNotFoundException(ItemNotFoundException ex) {
         return "error/404";
     }
+
     @ExceptionHandler(OrderNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public String handleOrderNotFoundException(OrderNotFoundException ex) {
         return "error/404";
     }
-
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -63,8 +64,6 @@ public class GlobalExceptionHandler {
         return "error/400";
     }
 
-
-
     @ExceptionHandler(ImageStorageException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public String handleImageStorageException(ImageStorageException ex) {
@@ -74,9 +73,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public String handleImageOtherException(Exception ex) {
-        var e = ex;
-        System.out.println();
         return "error/500";
     }
-
 }
