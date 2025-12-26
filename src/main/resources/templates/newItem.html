@@ -26,7 +26,7 @@
 
     <form th:action="@{/admin/items/add}" method="post" enctype="multipart/form-data"
           class="p-4 border rounded shadow-sm bg-white"
-          >
+    >
 
         <h5 class="mb-3 text-success">Добавить товар</h5>
         <div th:if="${errors}">
@@ -47,9 +47,16 @@
             <input type="number" name="price" class="form-control" th:value="${price}" placeholder="Введите цену" required>
         </div>
 
-        <div class="mb-3">
+        <!--<div class="mb-3">
             <label class="form-label">Фото</label>
             <input type="file" name="image" class="form-control" accept="image/*" required>
+        </div>-->
+        <div class="alert alert-info">
+            <small>
+                <strong>Изображение:</strong> Вы сможете загрузить изображение на следующем шаге
+                после создания товара. Это позволит сначала заполнить все данные, а потом добавить
+                подходящее изображение.
+            </small>
         </div>
 
         <div class="d-flex justify-content-between mt-4">

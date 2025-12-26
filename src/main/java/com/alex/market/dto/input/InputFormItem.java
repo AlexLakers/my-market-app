@@ -1,7 +1,7 @@
-package com.alex.market.api.dto.input;
+package com.alex.market.dto.input;
 
 import com.alex.market.model.CartAction;
-import com.alex.market.validator.ValidMessages;
+import com.alex.market.validation.ValidMessages;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
