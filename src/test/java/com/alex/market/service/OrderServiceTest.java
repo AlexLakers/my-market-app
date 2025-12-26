@@ -1,16 +1,11 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.output.ItemDto;
-import com.alex.market.api.dto.output.OrderDto;
+import com.alex.market.dto.output.ItemDto;
+import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
-import com.alex.market.mapper.ItemMapper;
-import com.alex.market.mapper.ItemMapperImpl;
 import com.alex.market.mapper.OrderMapper;
-import com.alex.market.mapper.OrderMapperImpl;
 import com.alex.market.model.Order;
-import com.alex.market.repository.ItemRepository;
 import com.alex.market.repository.OrderRepository;
-import com.alex.market.service.impl.ItemServiceImpl;
 import com.alex.market.service.impl.OrderServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,13 +16,10 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-import javax.swing.text.html.Option;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringJUnitConfig
 class OrderServiceTest {

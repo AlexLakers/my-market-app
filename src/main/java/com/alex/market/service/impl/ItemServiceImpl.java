@@ -1,9 +1,9 @@
 package com.alex.market.service.impl;
 
-import com.alex.market.api.dto.input.CartChangeDto;
-import com.alex.market.api.dto.input.ItemCreateDto;
-import com.alex.market.api.dto.output.ItemDto;
-import com.alex.market.api.dto.output.PageDto;
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.ItemCreateDto;
+import com.alex.market.dto.output.ItemDto;
+import com.alex.market.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;
@@ -17,12 +17,13 @@ import com.alex.market.service.CartService;
 import com.alex.market.service.FileService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -81,37 +82,6 @@ public class ItemServiceImpl implements ItemService {
 
     }
 
-    @Override
-    public ItemDto createItem(ItemCreateDto itemCreateDto) {
-
-        if(itemRepository.existsByTitle(itemCreateDto.title())) {
-            throw new TitleAlreadyExistsException(itemCreateDto.title());
-        }
-        String imageName=generateNewImagePath(itemCreateDto.title(),itemCreateDto.image().getOriginalFilename());
-
-        String imagePath=fileService.saveFile(itemCreateDto.image(), imageName);
-
-        Item savedItem=itemRepository.save(toItem(itemCreateDto, imagePath));
-        return itemMapper.toDto(savedItem,new HashMap<>());
-    }
-
-    private String generateNewImagePath(String title, String origName) {
-        String type = getTypeFromFileName(origName);
-        return title + type;
-
-
-    }
-
-    private String getTypeFromFileName(String fileName) {
-        return Optional.ofNullable(fileName)
-                .filter(name -> name.contains("."))
-                .map(name -> name.substring(name.lastIndexOf(".")))
-                .orElse("");
-    }
-
-    private Item toItem(ItemCreateDto dto,String imgPath){
-        return Item.builder().title(dto.title()).description(dto.description()).price(dto.price()).imgPath(imgPath).build();
-    }
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(

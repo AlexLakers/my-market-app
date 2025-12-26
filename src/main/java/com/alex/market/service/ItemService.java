@@ -1,10 +1,11 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.input.CartChangeDto;
-import com.alex.market.api.dto.input.ItemCreateDto;
-import com.alex.market.api.dto.output.ItemDto;
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.ItemCreateDto;
+import com.alex.market.dto.output.ItemDto;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -16,5 +17,4 @@ public interface ItemService {
 
     ItemDto changeCartItemCount(CartChangeDto cartChangeDto);
 
-    ItemDto createItem(ItemCreateDto itemCreateDto);
 }

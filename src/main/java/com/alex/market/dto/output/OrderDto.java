@@ -1,4 +1,4 @@
-package com.alex.market.api.dto.output;
+package com.alex.market.dto.output;
 
 import java.util.List;
 

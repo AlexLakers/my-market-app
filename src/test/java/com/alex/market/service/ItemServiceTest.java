@@ -1,9 +1,9 @@
 package com.alex.market.service;
 
-import com.alex.market.api.dto.input.CartChangeDto;
-import com.alex.market.api.dto.input.ItemCreateDto;
-import com.alex.market.api.dto.output.ItemDto;
-import com.alex.market.api.dto.output.PageDto;
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.ItemCreateDto;
+import com.alex.market.dto.output.ItemDto;
+import com.alex.market.dto.output.PageDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;

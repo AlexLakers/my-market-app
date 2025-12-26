@@ -1,6 +1,6 @@
 package com.alex.market.mapper;
 
-import com.alex.market.api.dto.output.OrderDto;
+import com.alex.market.dto.output.OrderDto;
 import com.alex.market.model.Order;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

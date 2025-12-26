@@ -1,8 +1,8 @@
-package com.alex.market.api.controller;
+package com.alex.market.controller;
 
-import com.alex.market.api.dto.input.CartChangeDto;
-import com.alex.market.api.dto.input.InputFormCart;
-import com.alex.market.api.dto.output.CartDto;
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.InputFormCart;
+import com.alex.market.dto.output.CartDto;
 import com.alex.market.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

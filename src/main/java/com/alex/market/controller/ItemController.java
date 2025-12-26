@@ -1,8 +1,8 @@
-package com.alex.market.api.controller;
+package com.alex.market.controller;
 
-import com.alex.market.api.dto.input.CartChangeDto;
-import com.alex.market.api.dto.input.InputFormItem;
-import com.alex.market.api.dto.input.InputFormItems;
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.InputFormItem;
+import com.alex.market.dto.input.InputFormItems;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
@@ -34,7 +34,6 @@ public class ItemController {
 
 
         PageItemsDto pageItemsDto = itemService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart));
-
         model.addAttribute("items", pageItemsDto.items());
         model.addAttribute("search", pageItemsDto.search());
         model.addAttribute("sort", pageItemsDto.sort());

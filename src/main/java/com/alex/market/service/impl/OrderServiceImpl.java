@@ -1,13 +1,10 @@
 package com.alex.market.service.impl;
 
-import com.alex.market.api.dto.output.ItemDto;
-import com.alex.market.api.dto.output.OrderDto;
+import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
-import com.alex.market.mapper.ItemMapper;
 import com.alex.market.mapper.OrderMapper;
 import com.alex.market.model.Item;
 import com.alex.market.model.Order;
-import com.alex.market.model.OrderItem;
 import com.alex.market.repository.OrderRepository;
 import com.alex.market.service.CartService;
 import com.alex.market.service.OrderService;

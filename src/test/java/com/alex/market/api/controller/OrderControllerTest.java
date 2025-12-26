@@ -1,7 +1,8 @@
 package com.alex.market.api.controller;
 
-import com.alex.market.api.dto.output.ItemDto;
-import com.alex.market.api.dto.output.OrderDto;
+import com.alex.market.dto.output.ItemDto;
+import com.alex.market.dto.output.OrderDto;
+import com.alex.market.controller.OrderController;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.service.OrderService;
@@ -17,14 +18,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebMvcTest(OrderController.class)
 @Import(GlobalExceptionHandler.class)

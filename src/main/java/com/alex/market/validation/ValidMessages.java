@@ -1,4 +1,4 @@
-package com.alex.market.validator;
+package com.alex.market.validation;
 
 public interface ValidMessages {
     String PRICE_POSITIVE = "The price must be positive";

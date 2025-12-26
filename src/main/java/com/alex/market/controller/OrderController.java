@@ -1,6 +1,5 @@
-package com.alex.market.api.controller;
+package com.alex.market.controller;
 
-import com.alex.market.api.dto.output.OrderDto;
 import com.alex.market.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;

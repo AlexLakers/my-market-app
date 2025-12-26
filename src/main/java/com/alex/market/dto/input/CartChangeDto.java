@@ -1,4 +1,4 @@
-package com.alex.market.api.dto.input;
+package com.alex.market.dto.input;
 
 import com.alex.market.model.CartAction;
 
