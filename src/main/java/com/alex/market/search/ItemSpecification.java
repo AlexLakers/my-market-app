@@ -13,17 +13,15 @@ public final class ItemSpecification {
             if (search == null || search.trim().isEmpty()) {
                 return builder.conjunction();
             }
-
             String likeFormat = "%" + search.toLowerCase() + "%";
 
             Predicate predicateTitleContainingIgCase = builder
                     .like(builder.lower(root.get(Item.Fields.title)),
-                            likeFormat
-                    );
+                            likeFormat);
+
             Predicate predicateDescContainingIgCase = builder
                     .like(builder.lower(root.get(Item.Fields.description)),
-                            likeFormat
-                    );
+                            likeFormat);
 
             return builder.or(predicateTitleContainingIgCase, predicateDescContainingIgCase);
         };

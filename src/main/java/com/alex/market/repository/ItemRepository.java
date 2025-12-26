@@ -22,5 +22,4 @@ public interface ItemRepository extends JpaRepository<Item, Long> , JpaSpecifica
     @Modifying
     @Query("UPDATE Item i SET i.imgPath = :imagePath WHERE i.id = :id")
     void updateImagePathById(@Param("id") Long id, @Param("imagePath") String imagePath);
-
 }

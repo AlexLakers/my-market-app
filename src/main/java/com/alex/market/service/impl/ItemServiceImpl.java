@@ -75,7 +75,6 @@ public class ItemServiceImpl implements ItemService {
                     return itemMapper.toDto(it, cart);
                 })
                 .orElseThrow(() -> new ItemNotFoundException(itemId));
-
     }
 
 
@@ -101,7 +100,6 @@ public class ItemServiceImpl implements ItemService {
                     while (group.size() < groupSize) {
                         group.add(createEmptyItemDto());
                     }
-
                     return group;
                 })
                 .collect(Collectors.toList());
@@ -113,18 +111,14 @@ public class ItemServiceImpl implements ItemService {
         if(itemRepository.existsByTitle(itemCreateDto.title())) {
             throw new TitleAlreadyExistsException(itemCreateDto.title());
         }
-
         Item savedItem=itemRepository.save(toItem(itemCreateDto/*, imagePath*/));
         return itemMapper.toDto(savedItem,new HashMap<>());
     }
-
-    private Item toItem(ItemCreateDto dto/*String imgPath*/){
-        return Item.builder().title(dto.title()).description(dto.description()).price(dto.price())./*imgPath(imgPath).*/build();
+    private Item toItem(ItemCreateDto dto){
+        return Item.builder().title(dto.title()).description(dto.description()).price(dto.price()).build();
     }
 
     private ItemDto createEmptyItemDto() {
         return new ItemDto(-1L, "", "", "", 0L, 0);
     }
-
-
 }

@@ -13,7 +13,6 @@ public final class ItemSort {
             case NO -> Sort.by(Item.Fields.id);
             case PRICE -> Sort.by(Item.Fields.price);
             case ALPHA -> Sort.by(Item.Fields.title);
-
         };
     }
 }

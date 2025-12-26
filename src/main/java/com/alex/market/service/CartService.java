@@ -8,7 +8,9 @@ import java.util.Map;
 
 public interface CartService {
     Integer changeItemCount(CartChangeDto cartChangeDto);
-    CartDto getItemsCartWithTotal(Map<Long,Integer> cartItemsCount);
-    Map<Item,Integer> getItemsCartWithCounts(Map<Long,Integer> cartItemsCount);
+
+    CartDto getItemsCartWithTotal(Map<Long, Integer> cartItemsCount);
+
+    Map<Item, Integer> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount);
 
 }

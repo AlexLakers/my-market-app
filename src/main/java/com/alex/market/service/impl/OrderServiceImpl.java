@@ -40,7 +40,6 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toDto(orderRepository.save(order));
     }
 
-
     @Override
     public OrderDto getOrder(Long orderId) {
         return orderRepository.findById(orderId)
@@ -52,5 +51,4 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAll().stream()
                 .map(orderMapper::toDto).collect(Collectors.toList());
     }
-
 }

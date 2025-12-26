@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
@@ -25,7 +24,6 @@
         </div>
     </div>
 
-    <!-- Информация о созданном товаре -->
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title text-success">
@@ -34,18 +32,13 @@
             <p class="card-text">
                 <strong>ID товара:</strong> <span class="badge bg-info" th:text="${item.id()}"></span><br>
                 <strong>Название:</strong> <span th:text="${item.title()}"></span><br>
-                <strong>Описание:</strong> <span th:text="${item.description() != null ? item.description() : 'Нет описания'}"></span><br>
+                <strong>Описание:</strong> <span
+                    th:text="${item.description() != null ? item.description() : 'Нет описания'}"></span><br>
                 <strong>Цена:</strong> <span th:text="${item.price()}"></span> ₽
             </p>
-         <!--   <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i>
-                Теперь вы можете загрузить изображение для этого товара.
-                Система автоматически сгенерирует уникальное имя файла и сохранит его в таблице товара.
-            </div>-->
         </div>
     </div>
 
-    <!-- Форма загрузки изображения -->
     <form th:action="@{/admin/images/{itemId}(itemId=${item.id()})}" method="post" enctype="multipart/form-data"
           class="p-4 border rounded shadow-sm bg-white"
     >

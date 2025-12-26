@@ -15,7 +15,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class ImageServiceImpl implements ImageService {
 
     private ItemRepository itemRepository;
@@ -35,8 +34,6 @@ public class ImageServiceImpl implements ImageService {
         }
 
         String imageName = generateNewImagePath(id, image.getOriginalFilename());
-
-
         String imagePath = saveFile(image, imageName);
 
         itemRepository.updateImagePathById(id, imagePath);

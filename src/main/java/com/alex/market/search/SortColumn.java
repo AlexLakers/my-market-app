@@ -4,5 +4,4 @@ public enum SortColumn {
     NO,
     ALPHA,
     PRICE
-
 }

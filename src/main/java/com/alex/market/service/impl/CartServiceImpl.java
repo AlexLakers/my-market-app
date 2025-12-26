@@ -22,11 +22,9 @@ public class CartServiceImpl implements CartService {
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
 
-
     public Integer incrementItemCount(Long itemId, Map<Long, Integer> cartItemsCount) {
         return cartItemsCount.merge(itemId, 1, Integer::sum);
     }
-
 
     private Integer decrementItemCount(Long itemId, Map<Long, Integer> cartItemsCount) {
         Integer result = cartItemsCount.computeIfPresent(itemId, (id, currentQty) -> {
@@ -35,7 +33,6 @@ public class CartServiceImpl implements CartService {
         });
         return result == null ? 0 : result;
     }
-
 
     @Override
     public Integer changeItemCount(CartChangeDto cartChangeDto) {
@@ -84,6 +81,5 @@ public class CartServiceImpl implements CartService {
 
     private CartDto buildCartDto(List<ItemDto> items, Long totalPrice) {
         return new CartDto(items, totalPrice);
-
     }
 }

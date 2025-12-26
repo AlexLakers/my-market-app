@@ -69,7 +69,7 @@ class OrderMapperTest {
         assertThat(result.items().get(1).count()).isEqualTo(2);
         assertThat(result.items().get(2).count()).isEqualTo(3);
     }
-    
+
     @TestConfiguration
     static class TestConfig {
 
