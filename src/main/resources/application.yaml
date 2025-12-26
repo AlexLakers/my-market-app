@@ -1,16 +1,51 @@
+server:
+  tomcat:
+    max-http-form-post-size: 5MB
+
 spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+  threads:
+    virtual:
+      enabled: true
+
   application:
     name: my-market-app
+
+  main:
+    banner-mode: off
+
   liquibase:
     change-log: db/changelog/db.changelog-master.xml
-    contexts: prod
+    contexts: ${SPRING_PROFILES_ACTIVE:dev}
+
   datasource:
-    username: postgres
-    password: postgres
-    url: jdbc:postgresql://localhost:5432/skeleton_repository
+    #    username: postgres
+    #    password: postgres
+    #    url: jdbc:postgresql://localhost:5432/skeleton_repository
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
   jpa:
     properties:
       hibernate:
         show_sql: true
         format_sql: true
         default_batch_fetch_size: 50
+    hibernate:
+      ddl-auto: none
+
+market:
+  upload:
+    dir: /tmp/my-market

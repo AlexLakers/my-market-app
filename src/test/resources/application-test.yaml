@@ -1,4 +1,10 @@
 spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  sql:
+    init:
+      mode: always
   liquibase:
     contexts: test
     enabled: true

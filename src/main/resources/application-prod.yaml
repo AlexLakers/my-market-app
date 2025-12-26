@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 50
+  liquibase:
+    contexts: prod
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: false
+logging:
+  level:
+    root: WARN
+    com.alex.market: INFO
+  file:
+    name: /var/log/market-app/market.log
