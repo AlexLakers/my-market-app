@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 @SpringJUnitConfig
 class CartServiceTest {
 
@@ -54,19 +57,19 @@ class CartServiceTest {
     })
     void changeItemCount_shouldReturnIncrementCountItemInCartSuccess(CartAction action,Integer expectedCount) {
         CartChangeDto givenDto=new CartChangeDto(VALID_ID, action,cartItemsCount);
-        Mockito.when(itemRepository.existsById(VALID_ID)).thenReturn(true);
+        when(itemRepository.existsById(VALID_ID)).thenReturn(true);
 
         Integer actualCount=cartService.changeItemCount(givenDto);
 
-        Assertions.assertThat(actualCount).isNotNull().isEqualTo(expectedCount);
+        assertThat(actualCount).isNotNull().isEqualTo(expectedCount);
     }
 
     @Test
     void changeItemCount_shouldThrowItemNotFoundException_whenItemIdNotExistsFail() {
         CartChangeDto givenDto=new CartChangeDto(INVALID_ID, CartAction.PLUS,cartItemsCount);
-        Mockito.when(itemRepository.existsById(INVALID_ID)).thenReturn(false);
+        when(itemRepository.existsById(INVALID_ID)).thenReturn(false);
 
-        Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
+        assertThatExceptionOfType(ItemNotFoundException.class)
                         .isThrownBy(()->cartService.changeItemCount(givenDto));
     }
 
@@ -75,11 +78,11 @@ class CartServiceTest {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
         Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
         CartDto expectedDto=new CartDto(List.of(itemDto),2000L);
-        Mockito.when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(List.of(expectedItem));
+        when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(List.of(expectedItem));
 
         CartDto actualDto=cartService.getItemsCartWithTotal(cartItemsCount);
 
-        Assertions.assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
+        assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
 
 
@@ -88,7 +91,7 @@ class CartServiceTest {
     static class TestConfig {
         @Bean
         public ItemRepository itemRepository() {
-            return Mockito.mock(ItemRepository.class);
+            return mock(ItemRepository.class);
         }
 
         @Bean

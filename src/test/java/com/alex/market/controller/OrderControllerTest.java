@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 @WebMvcTest(OrderController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
@@ -50,42 +53,42 @@ class OrderControllerTest {
     @Test
     void createOrder_shouldRedirectToOrdersById() throws Exception {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderService.createOrder(cartItemsCount)).thenReturn(orderDto);
+        when(orderService.createOrder(cartItemsCount)).thenReturn(orderDto);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/buy")
                 .sessionAttr("cart",cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
-                .andExpect(MockMvcResultMatchers.redirectedUrl("/orders/"+VALID_ID+"?newOrder=true"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/orders/" + VALID_ID + "?newOrder=true"));
     }
 
     @Test
     void getOrders_shouldExistsModelAndView() throws Exception {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderService.getOrders()).thenReturn(List.of(orderDto));
+        when(orderService.getOrders()).thenReturn(List.of(orderDto));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/orders"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.model().attributeExists("orders"))
-                .andExpect(MockMvcResultMatchers.view().name("orders"));
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("orders"))
+                .andExpect(view().name("orders"));
     }
 
     @Test
     void getOrder_shouldReturnOneDtoAndView() throws Exception {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderService.getOrder(VALID_ID)).thenReturn(orderDto);
+        when(orderService.getOrder(VALID_ID)).thenReturn(orderDto);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/orders/{id}",VALID_ID)
                         .param("newOrder","false"))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.model().attributeExists("order"))
-                .andExpect(MockMvcResultMatchers.view().name("order"));
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("order"))
+                .andExpect(view().name("order"));
     }
     @Test
     void getOrder_shouldSetStatus404_whenNotFoundFail() throws Exception {
-        Mockito.doThrow(OrderNotFoundException.class).when(orderService).getOrder(INVALID_ID);
+        doThrow(OrderNotFoundException.class).when(orderService).getOrder(INVALID_ID);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/orders/{id}",INVALID_ID)
                         .param("newOrder","false"))
-                .andExpect(MockMvcResultMatchers.status().isNotFound());
+                .andExpect(status().isNotFound());
     }
 }

@@ -31,6 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 @SpringJUnitConfig
 class ItemServiceTest {
 
@@ -59,18 +62,18 @@ class ItemServiceTest {
         SearchDto givenDto = new SearchDto("test", SortColumn.PRICE, 1, 3, cartItemsCount);
         Page<Item> pageItems = getExpectedPageItems(givenDto.pageNumber(), givenDto.pageSize(), 4);
         PageItemsDto pageItemsDto = getExpectedPageItemsDto(givenDto.search(), givenDto.sortColumn().name(), pageItems.getNumber(), pageItems.getSize(), pageItems.hasPrevious(), pageItems.hasNext());
-        Mockito.when(itemRepository.findAll(Mockito.any(Specification.class), Mockito.any(Pageable.class))).thenReturn(pageItems);
+        when(itemRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(pageItems);
 
         PageItemsDto actual = itemService.getItemsPage(givenDto);
 
-        Assertions.assertThat(actual.items())
+        assertThat(actual.items())
                 .isNotNull()
                 .hasSize(pageItemsDto.items().size());
-        Assertions.assertThat(actual.items().getFirst())
+        assertThat(actual.items().getFirst())
                 .isNotNull()
                 .hasSize(3)
                 .contains(pageItemsDto.items().getFirst().getFirst());
-        Assertions.assertThat(actual.items().getLast())
+        assertThat(actual.items().getLast())
                 .isNotNull()
                 .hasSize(3)
                 .contains(pageItemsDto.items().getLast().getLast());
@@ -105,11 +108,11 @@ class ItemServiceTest {
     @Test
     void findByIdWithCartCount_shouldReturnDtoSuccess() {
         Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, null);
-        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
+        when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
 
         ItemDto actualDto = itemService.findByIdWithCartCount(VALID_ID, cartItemsCount);
 
-        Assertions.assertThat(actualDto)
+        assertThat(actualDto)
                 .isNotNull()
                 .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID)
                 .hasFieldOrPropertyWithValue(Item.Fields.title, expectedItem.getTitle())
@@ -118,9 +121,9 @@ class ItemServiceTest {
 
     @Test
     void findByIdWithCartCount_shouldThrowItemNotFoundException_whenIdNotFoundFail() {
-        Mockito.when(itemRepository.findById(INVALID_ID)).thenReturn(Optional.empty());
+        when(itemRepository.findById(INVALID_ID)).thenReturn(Optional.empty());
 
-        Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
+        assertThatExceptionOfType(ItemNotFoundException.class)
                 .isThrownBy(() -> itemService.findByIdWithCartCount(INVALID_ID, cartItemsCount));
 
     }
@@ -128,11 +131,11 @@ class ItemServiceTest {
     @ParameterizedTest
     @EmptySource
     void findByIdWithCartCount_shouldReturnDtoWithSetDefaultCartCount_whenCartMapNull(Map<Long, Integer> cartItemsCountNotValid) {
-        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(new Item()));
+        when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(new Item()));
 
         ItemDto actualDto = itemService.findByIdWithCartCount(VALID_ID, cartItemsCountNotValid);
 
-        Assertions.assertThat(actualDto)
+        assertThat(actualDto)
                 .isNotNull()
                 .hasFieldOrPropertyWithValue("count", 0);
 
@@ -143,12 +146,12 @@ class ItemServiceTest {
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID+1));
         Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
-        Mockito.when(cartService.changeItemCount(Mockito.any(CartChangeDto.class))).thenReturn(2);
+        when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
+        when(cartService.changeItemCount(any(CartChangeDto.class))).thenReturn(2);
 
         ItemDto actualDto=itemService.changeCartItemCount(givenDto);
 
-        Assertions.assertThat(actualDto)
+        assertThat(actualDto)
                 .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID)
                 .hasFieldOrPropertyWithValue("count", expectedDto.count());
     }
@@ -157,12 +160,12 @@ class ItemServiceTest {
     static class TestConfig {
         @Bean
         public CartService cartService() {
-            return Mockito.mock(CartService.class);
+            return mock(CartService.class);
         }
 
         @Bean
         public ItemRepository itemRepository() {
-            return Mockito.mock(ItemRepository.class);
+            return mock(ItemRepository.class);
         }
 
         @Bean

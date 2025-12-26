@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 @SpringJUnitConfig
 class OrderServiceTest {
 
@@ -45,45 +48,45 @@ class OrderServiceTest {
     @Test
     void createOrder_shouldCreateOrderAndReturnOrderDtoSuccess() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderMapper.toDto(Mockito.any(Order.class))).thenReturn(orderDto);
-        Mockito.when(orderRepository.save(Mockito.any(Order.class))).thenReturn(new Order());
+        when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
+        when(orderRepository.save(any(Order.class))).thenReturn(new Order());
 
         OrderDto actualDto=orderService.createOrder(cartItemsCount);
 
-        Assertions.assertThat(actualDto).isNotNull().isEqualTo(orderDto);
+        assertThat(actualDto).isNotNull().isEqualTo(orderDto);
 
     }
 
     @Test
     void getOrder_shouldReturnOrderDtoByIdSuccess() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderMapper.toDto(Mockito.any(Order.class))).thenReturn(orderDto);
-        Mockito.when(orderRepository.findById(VALID_ID)).thenReturn(Optional.of(new Order()));
+        when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
+        when(orderRepository.findById(VALID_ID)).thenReturn(Optional.of(new Order()));
 
         OrderDto actualDto= orderService.getOrder(VALID_ID);
 
-        Assertions.assertThat(actualDto).isNotNull().isEqualTo(orderDto);
+        assertThat(actualDto).isNotNull().isEqualTo(orderDto);
     }
 
     @Test
     void getOrder_shouldReturnEmptyOptional_whenThrowOrderNotFoundExceptionFail() {
         OrderDto orderDto = new OrderDto(INVALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderMapper.toDto(Mockito.any(Order.class))).thenReturn(orderDto);
-        Mockito.when(orderRepository.findById(INVALID_ID)).thenReturn(Optional.empty());
+        when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
+        when(orderRepository.findById(INVALID_ID)).thenReturn(Optional.empty());
 
-        Assertions.assertThatExceptionOfType(OrderNotFoundException.class)
+        assertThatExceptionOfType(OrderNotFoundException.class)
                 .isThrownBy(()->orderService.getOrder(INVALID_ID));
     }
 
     @Test
     void getOrders_shouldReturnOrderDtoListSuccess() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        Mockito.when(orderMapper.toDto(Mockito.any(Order.class))).thenReturn(orderDto);
-        Mockito.when(orderRepository.findAll()).thenReturn(List.of(new Order()));
+        when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
+        when(orderRepository.findAll()).thenReturn(List.of(new Order()));
 
         List<OrderDto> actualDto=orderService.getOrders();
 
-        Assertions.assertThat(actualDto).hasSize(1).contains(orderDto);
+        assertThat(actualDto).hasSize(1).contains(orderDto);
     }
 
 
@@ -92,16 +95,16 @@ class OrderServiceTest {
 
         @Bean
         public OrderRepository orderRepository() {
-            return Mockito.mock(OrderRepository.class);
+            return mock(OrderRepository.class);
         }
 
         @Bean
         public OrderMapper orderMapper() {
-            return Mockito.mock(OrderMapper.class);
+            return mock(OrderMapper.class);
         }
         @Bean
         public CartService cartService() {
-            return Mockito.mock(CartService.class);
+            return mock(CartService.class);
         }
 
         @Bean

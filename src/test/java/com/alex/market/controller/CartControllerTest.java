@@ -24,6 +24,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 @WebMvcTest(CartController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
@@ -49,13 +53,13 @@ class CartControllerTest {
     void getItems_shouldReturnViewAndModelWithDataFromCart() throws Exception {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L);
-        Mockito.when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
+        when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/cart/items")
+        mockMvc.perform(get("/cart/items")
                         .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.view().name("cart"))
-                .andExpect(MockMvcResultMatchers.model().attribute("items", expectedDto.items()));
+                .andExpect(status().isOk())
+                .andExpect(view().name("cart"))
+                .andExpect(model().attribute("items", expectedDto.items()));
     }
 
     @Test
@@ -63,15 +67,15 @@ class CartControllerTest {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L);
-        Mockito.when(cartService.changeItemCount(givenDto)).thenReturn(itemDto.count());
-        Mockito.when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
+        when(cartService.changeItemCount(givenDto)).thenReturn(itemDto.count());
+        when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/cart/items")
+        mockMvc.perform(post("/cart/items")
                         .param("id", String.valueOf(VALID_ID))
                         .param("action", CartAction.PLUS.name())
                         .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
-                .andExpect(MockMvcResultMatchers.redirectedUrl("/cart/items"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/cart/items"));
 
     }
 }

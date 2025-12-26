@@ -34,6 +34,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -57,20 +59,20 @@ class AdminControllerTest {
     void uploadImage_shouldSetStatus302RedirectToItemPageSuccess() throws Exception {
         byte[] givenImage = new byte[]{(byte) 137, 80, 78, 71};
         MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
-        Mockito.doNothing().when(imageService).uploadImage(file, VALID_ID);
+        doNothing().when(imageService).uploadImage(file, VALID_ID);
 
         mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.POST, "/admin/images/{id}", VALID_ID)
                         .file(file)
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(MockMvcResultMatchers.redirectedUrl("/items/" + VALID_ID));
+                .andExpect(redirectedUrl("/items/" + VALID_ID));
     }
 
     @Test
     void uploadImage_shouldSetStatus404WhenItemNotFoundFail() throws Exception {
         byte[] givenImage = new byte[]{(byte) 137, 80, 78, 71};
         MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
-        Mockito.doThrow(ItemNotFoundException.class).when(imageService).uploadImage(file, INVALID_ID);
+        doThrow(ItemNotFoundException.class).when(imageService).uploadImage(file, INVALID_ID);
 
         mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.POST, "/admin/images/{id}", INVALID_ID)
                         .file(file)
@@ -82,7 +84,7 @@ class AdminControllerTest {
     void createItem_shouldSetStatus302RedirectToItemsPageAndThenReturnNewImagePageWithAttrAllFlowSuccess() throws Exception {
         ItemCreateDto givenDto = new ItemCreateDto("title", "desc", 1000L);
         ItemDto expectedDto = new ItemDto(VALID_ID, "title", "desc", null, 1000L, 1);
-        Mockito.when(itemService.createItem(givenDto)).thenReturn(expectedDto);
+        when(itemService.createItem(givenDto)).thenReturn(expectedDto);
 
         MvcResult result=mockMvc.perform(MockMvcRequestBuilders.post("/admin/items/add")
                 .param("title", givenDto.title())
@@ -90,7 +92,7 @@ class AdminControllerTest {
                 .param("price", String.valueOf(givenDto.price()))
                                 .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(MockMvcResultMatchers.redirectedUrl("/admin/images"))
+                .andExpect(redirectedUrl("/admin/images"))
                 .andExpect(flash().attribute("item", expectedDto))
                 .andReturn();
 
@@ -100,14 +102,14 @@ class AdminControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/admin/images")
                         .session((MockHttpSession) result.getRequest().getSession()))
                 .andExpect(status().isOk())
-                .andExpect(MockMvcResultMatchers.model().attribute("item", expectedDto))
-                .andExpect(MockMvcResultMatchers.view().name("newImage"));
+                .andExpect(model().attribute("item", expectedDto))
+                .andExpect(view().name("newImage"));
     }
 
     @Test
     void createItem_shouldSetStatus400_whenTitleAlreadyExistsFail() throws Exception {
         ItemCreateDto givenDto = new ItemCreateDto("title", "desc", 1000L);
-        Mockito.doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
+        doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/admin/items/add")
                         .param("title", givenDto.title())
@@ -124,14 +126,14 @@ class AdminControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/admin/images")
                         .flashAttr("item", flashItem))
                 .andExpect(status().isOk())
-                .andExpect(MockMvcResultMatchers.model().attribute("item", flashItem))
-                .andExpect(MockMvcResultMatchers.view().name("newImage"));
+                .andExpect(model().attribute("item", flashItem))
+                .andExpect(view().name("newImage"));
     }
 
     @Test
     void adminPage_shouldSet200AndReturnNewItemPageSuccess() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/admin/items"))
                 .andExpect(status().isOk())
-                .andExpect(MockMvcResultMatchers.view().name("newItem"));
+                .andExpect(view().name("newItem"));
     }
 }

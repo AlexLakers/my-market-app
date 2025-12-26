@@ -27,6 +27,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.util.*;
 
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 
 @WebMvcTest(ItemController.class)
 @Import(GlobalExceptionHandler.class)
@@ -55,63 +59,63 @@ class ItemControllerTest {
     void getItems_shouldReturnViewAndModelWithData() throws Exception {
         PageItemsDto expectedDto = new PageItemsDto(Collections.emptyList(), "test", SortColumn.PRICE.name(), new PageDto(3, 1, false, false));
 
-        Mockito.when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(expectedDto);
+        when(itemService.getItemsPage(any(SearchDto.class))).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/items")
+        mockMvc.perform(get("/items")
                         .param("search", "test")
                         .param("sort", SortColumn.NO.name())
                         .param("pageNumber", "1")
                         .param("pageSize", "3")
                         .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.view().name("items"))
-                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
-                .andExpect(MockMvcResultMatchers.model().attributeExists("items", "search", "sort", "paging"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("items"))
+                .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
+                .andExpect(model().attributeExists("items", "search", "sort", "paging"));
     }
 
     @Test
     void getItems_shouldSetParamsSomeDefaultValue_whenTheseParamsNotGiven() throws Exception {
         PageItemsDto expectedDto = new PageItemsDto(Collections.emptyList(), "test", SortColumn.PRICE.name(), new PageDto(3, 1, false, false));
 
-        Mockito.when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(expectedDto);
+        when(itemService.getItemsPage(any(SearchDto.class))).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/items")
+        mockMvc.perform(get("/items")
                         .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.view().name("items"))
-                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
-                .andExpect(MockMvcResultMatchers.model().attributeExists("items", "search", "sort", "paging"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("items"))
+                .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
+                .andExpect(model().attributeExists("items", "search", "sort", "paging"));
     }
 
     @Test
     void getItemById_shouldReturnViewAndModelWithDataSuccess() throws Exception {
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
-        Mockito.when(itemService.findByIdWithCartCount(VALID_ID, cartItemsCount)).thenReturn(expectedDto);
+        when(itemService.findByIdWithCartCount(VALID_ID, cartItemsCount)).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/items/{id}", VALID_ID)
+        mockMvc.perform(get("/items/{id}", VALID_ID)
                         .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.view().name("item"))
-                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
-                .andExpect(MockMvcResultMatchers.model().attributeExists("item"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("item"))
+                .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
+                .andExpect(model().attributeExists("item"));
     }
 
     @Test
     void getItemById_shouldThrowItemNotFoundException_whenItemNotFound() throws Exception {
-        Mockito.doThrow(new ItemNotFoundException(INVALID_ID)).when(itemService).findByIdWithCartCount(INVALID_ID, cartItemsCount);
+        doThrow(new ItemNotFoundException(INVALID_ID)).when(itemService).findByIdWithCartCount(INVALID_ID, cartItemsCount);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/items/{id}", INVALID_ID)
+        mockMvc.perform(get("/items/{id}", INVALID_ID)
                         .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().isNotFound());
+                .andExpect(status().isNotFound());
     }
 
     @Test
     void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() throws Exception {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
-        Mockito.when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
+        when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/items")
+        mockMvc.perform(post("/items")
                 .param("id", VALID_ID.toString())
                 .param("action", CartAction.PLUS.name())
                 .param("search", "test")
@@ -119,24 +123,24 @@ class ItemControllerTest {
                 .param("pageNumber", "1")
                 .param("pageSize", "3")
                 .sessionAttr("cart", cartItemsCount))
-                .andExpect(MockMvcResultMatchers.status().is3xxRedirection())
-                .andExpect(MockMvcResultMatchers.redirectedUrl("/items?search=test&sort=NO&pageSize=3&pageNumber=1"))
-                .andExpect(MockMvcResultMatchers.view().name("redirect:/items"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/items?search=test&sort=NO&pageSize=3&pageNumber=1"))
+                .andExpect(view().name("redirect:/items"));
 
     }
     @Test
     public void changeCartItemCountForItemPage() throws Exception {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
-        Mockito.when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
+        when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/items/{itemId}",VALID_ID)
+        mockMvc.perform(post("/items/{itemId}",VALID_ID)
                 .sessionAttr("cart", cartItemsCount)
                 .param("action", CartAction.PLUS.name()))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.view().name("item"))
-                .andExpect(MockMvcResultMatchers.content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
-                .andExpect(MockMvcResultMatchers.model().attributeExists("item"));
+                .andExpect(status().isOk())
+                .andExpect(view().name("item"))
+                .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
+                .andExpect(model().attributeExists("item"));
     }
 
 
