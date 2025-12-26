@@ -39,15 +39,11 @@ class ItemServiceTest {
     private Map<Long, Integer> cartItemsCount;
 
     @Autowired
-    private FileService fileService;
-    @Autowired
     private ItemRepository itemRepository;
     @Autowired
     private ItemService itemService;
     @Autowired
     private CartService cartService;
-    @Autowired
-    private ItemMapper itemMapper;
 
 
     @BeforeEach
@@ -157,50 +153,6 @@ class ItemServiceTest {
                 .hasFieldOrPropertyWithValue("count", expectedDto.count());
     }
 
-    @Test
-    void createItem_shouldSaveItemAndReturnSavedItemDtoSuccess(){
-        String TEST_IMAGE_NAME="images/test-item-test.jpg";
-        String TEST_TITLE="testTitle";
-        byte[] TEST_IMAGE_CONTENT="testImageContent".getBytes();
-        MultipartFile mockImage = new MockMultipartFile("image", TEST_IMAGE_NAME, "image/jpeg", TEST_IMAGE_CONTENT);
-        ItemCreateDto itemCreateDto = new ItemCreateDto(TEST_TITLE, "testDesc", mockImage, 1000L);
-        String expectedImagePath = "images/test-item-test.jpg";
-        Item expectedSavedItem = new Item(VALID_ID,TEST_TITLE,TEST_IMAGE_NAME,TEST_IMAGE_NAME,1000L,null);
-
-        Mockito.when(itemRepository.existsByTitle(TEST_TITLE)).thenReturn(false);
-        Mockito.when(fileService.saveFile(Mockito.eq(mockImage), Mockito.anyString()))
-                .thenReturn(expectedImagePath);
-        Mockito.when(itemRepository.save(Mockito.any(Item.class))).thenReturn(expectedSavedItem);
-        ItemDto result = itemService.createItem(itemCreateDto);
-
-
-        Assertions.assertThat(result).isNotNull();
-        Assertions.assertThat(result.id()).isEqualTo(1L);
-        Assertions.assertThat(result.title()).isEqualTo(TEST_TITLE);
-        Assertions.assertThat(result.imgPath()).isEqualTo(expectedImagePath);
-
-        Mockito.verify(itemRepository).existsByTitle(TEST_TITLE);
-        Mockito.verify(fileService).saveFile(Mockito.eq(mockImage), Mockito.anyString());
-        Mockito.verify(itemRepository).save(Mockito.any(Item.class));
-
-    }
-
-    @Test
-    void createItem_shouldThrowTitleAlreadyExistsFail(){
-        String TEST_IMAGE_NAME="images/test-item-test.jpg";
-        String TEST_TITLE="testTitle";
-        byte[] TEST_IMAGE_CONTENT="testImageContent".getBytes();
-        MultipartFile mockImage = new MockMultipartFile("image", TEST_IMAGE_NAME, "image/jpeg", TEST_IMAGE_CONTENT);
-        ItemCreateDto itemCreateDto = new ItemCreateDto(TEST_TITLE, "testDesc", mockImage, 1000L);
-        Mockito.when(itemRepository.existsByTitle(TEST_TITLE)).thenReturn(true);
-
-        Assertions.assertThatThrownBy(() -> itemService.createItem(itemCreateDto))
-                .isInstanceOf(TitleAlreadyExistsException.class)
-                .hasMessageContaining(TEST_TITLE);
-
-        Mockito.verify(itemRepository,Mockito.times(2)).existsByTitle(TEST_TITLE);
-    }
-
         @TestConfiguration
     static class TestConfig {
         @Bean
@@ -215,16 +167,13 @@ class ItemServiceTest {
 
         @Bean
         public ItemService itemService(ItemRepository itemRepository) {
-            return new ItemServiceImpl(itemRepository, cartService(),fileService(),itemMapper());
+            return new ItemServiceImpl(itemRepository, cartService(),itemMapper());
         }
         @Bean
         public ItemMapper itemMapper() {
             return new ItemMapperImpl();
         }
-        @Bean
-        public FileService fileService() {
-            return Mockito.mock(FileService.class);
-        }
+
     }
 
 
