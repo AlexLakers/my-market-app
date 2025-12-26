@@ -13,7 +13,7 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "orderItems")
 @EqualsAndHashCode(of = "id")
 @Builder
 @FieldNameConstants
