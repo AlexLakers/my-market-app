@@ -1,7 +1,8 @@
-package com.alex.market.repository;
+package com.alex.market.integration.repository;
 
 import com.alex.market.config.PostgresTestconteinerConfig;
 import com.alex.market.model.Item;
+import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.ItemSort;
 import com.alex.market.search.ItemSpecification;
 import com.alex.market.search.SortColumn;
@@ -32,7 +33,7 @@ import java.util.stream.Stream;
         "/sql/data-test.sql"
 }, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 
-class ItemRepositoryTest {
+class ItemRepositoryIT {
 
     private final static Long VALID_ID=1000L;
     @Autowired

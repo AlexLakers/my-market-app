@@ -1,14 +1,13 @@
-package com.alex.market.controller;
+package com.alex.market.integration.controller;
 
+import com.alex.market.controller.OrderController;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
-import com.alex.market.controller.OrderController;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.service.OrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -17,7 +16,6 @@ import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(OrderController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
-class OrderControllerTest {
+class OrderControllerMockIT {
     @Autowired
     private MockMvc mockMvc;
 

@@ -1,15 +1,14 @@
-package com.alex.market.controller;
+package com.alex.market.integration.controller;
 
+import com.alex.market.controller.CartController;
 import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.output.CartDto;
 import com.alex.market.dto.output.ItemDto;
-import com.alex.market.controller.CartController;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.model.CartAction;
 import com.alex.market.service.CartService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -17,8 +16,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CartController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
-class CartControllerTest {
+class CartControllerMockIT {
 
     private Map<Long, Integer> cartItemsCount;
 

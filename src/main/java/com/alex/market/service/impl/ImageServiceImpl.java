@@ -20,7 +20,7 @@ public class ImageServiceImpl implements ImageService {
     private ItemRepository itemRepository;
     private Path baseDir;
 
-    public ImageServiceImpl(@Value("${market.upload.dir:/home/alexlakers/my-market}") Path baseDir,
+    public ImageServiceImpl(@Value("${market.dir:/home/alexlakers/my-market}") Path baseDir,
                             ItemRepository itemRepository) {
         this.baseDir = baseDir;
         this.itemRepository = itemRepository;

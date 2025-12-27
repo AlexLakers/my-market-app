@@ -1,10 +1,10 @@
-package com.alex.market.controller;
+package com.alex.market.integration.controller;
 
+import com.alex.market.controller.ItemController;
 import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
-import com.alex.market.controller.ItemController;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
@@ -16,7 +16,6 @@ import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -29,8 +28,6 @@ import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.web.servlet.FlashMap;
 
 import java.util.*;
@@ -44,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ItemController.class)
 @Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
-class ItemControllerTest {
+class ItemControllerMockIT {
 
     @MockitoBean(reset = MockReset.BEFORE)
     private ItemService itemService;
@@ -173,7 +170,7 @@ class ItemControllerTest {
         MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
         doThrow(ItemNotFoundException.class).when(imageService).updateImageByItemId(file, INVALID_ID);
 
-        mockMvc.perform(multipart(HttpMethod.POST, "/admin/images/{id}", INVALID_ID)
+        mockMvc.perform(multipart(HttpMethod.POST, "/items/{id}/images/new", INVALID_ID)
                         .file(file)
                         .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isNotFound());
