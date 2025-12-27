@@ -1,5 +1,6 @@
 package com.alex.market.service.impl;
 
+import com.alex.market.aop.annotation.Loggable;
 import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +30,7 @@ import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ItemServiceImpl implements ItemService {
 
     private final static Integer CONTENT_GROUP_SIZE = 3;
@@ -36,6 +39,7 @@ public class ItemServiceImpl implements ItemService {
     private final CartService cartService;
     private final ItemMapper itemMapper;
 
+    @Loggable
     public PageItemsDto getItemsPage(SearchDto searchDto) {
 
         Specification specItems = ItemSpecification.getSpecByTitleOrDescription(searchDto.search());
@@ -78,7 +82,6 @@ public class ItemServiceImpl implements ItemService {
     }
 
 
-
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
         return new PageItemsDto(
                 groupItems,
@@ -87,6 +90,7 @@ public class ItemServiceImpl implements ItemService {
                 new PageDto(searchDto.pageSize(), searchDto.pageNumber(), hasPrev, hasNext));
     }
 
+    @Loggable
     private List<List<ItemDto>> groupItems(List<ItemDto> content, Integer groupSize) {
         List<ItemDto> groupItems = content != null ? content : new ArrayList<>();
 
@@ -106,15 +110,18 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
+    @Transactional
+    @Loggable
     public ItemDto createItem(ItemCreateDto itemCreateDto) {
 
-        if(itemRepository.existsByTitle(itemCreateDto.title())) {
+        if (itemRepository.existsByTitle(itemCreateDto.title())) {
             throw new TitleAlreadyExistsException(itemCreateDto.title());
         }
-        Item savedItem=itemRepository.save(toItem(itemCreateDto/*, imagePath*/));
-        return itemMapper.toDto(savedItem,new HashMap<>());
+        Item savedItem = itemRepository.save(toItem(itemCreateDto/*, imagePath*/));
+        return itemMapper.toDto(savedItem, new HashMap<>());
     }
-    private Item toItem(ItemCreateDto dto){
+
+    private Item toItem(ItemCreateDto dto) {
         return Item.builder().title(dto.title()).description(dto.description()).price(dto.price()).build();
     }
 

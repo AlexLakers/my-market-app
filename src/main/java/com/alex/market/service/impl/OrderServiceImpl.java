@@ -1,5 +1,6 @@
 package com.alex.market.service.impl;
 
+import com.alex.market.aop.annotation.Loggable;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.mapper.OrderMapper;
@@ -10,6 +11,7 @@ import com.alex.market.service.CartService;
 import com.alex.market.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
@@ -24,6 +27,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
 
     @Override
+    @Loggable
+    @Transactional
     public OrderDto createOrder(Map<Long, Integer> cartItemsCounts) {
         Map<Item, Integer> itemsCounts = cartService.getItemsCartWithCounts(cartItemsCounts);
 
