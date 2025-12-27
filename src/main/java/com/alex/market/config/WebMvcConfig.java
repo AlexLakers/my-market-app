@@ -23,7 +23,7 @@ import java.util.List;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer{
 
-    @Value("${market.upload.dir:/home/alexlakers/my-market/}")
+    @Value("${market.dir:/home/alexlakers/my-market/}")
     private String baseDir;
 
     @Override
