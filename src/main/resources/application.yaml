@@ -54,4 +54,4 @@ logging:
     root: WARN
     com.alex.market: INFO
   file:
-    name: /var/log/market-app/market.log
+    name: ${MARKET_DIR:/home/alexlakers/my-market}/market.log
