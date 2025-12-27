@@ -1,6 +1,7 @@
 server:
   tomcat:
     max-http-form-post-size: 5MB
+  port: ${APP_PORT:8080}
 
 spring:
   servlet:
@@ -21,21 +22,18 @@ spring:
 
   liquibase:
     change-log: db/changelog/db.changelog-master.xml
-    contexts: ${SPRING_PROFILES_ACTIVE:dev}
+    contexts: dev
 
   datasource:
-        username: postgres
-        password: postgres
-        url: jdbc:postgresql://localhost:5432/skeleton_repository
-  #  url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-  #  username: ${DB_USER}
-  # password: ${DB_PASS}
-    #hikari:
-      #connection-timeout: 30000
-      #maximum-pool-size: 20
-      #minimum-idle: 5
-      #idle-timeout: 600000
-      #max-lifetime: 1800000
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
 
   jpa:
     properties:
@@ -45,7 +43,15 @@ spring:
         default_batch_fetch_size: 50
     hibernate:
       ddl-auto: none
+    open-in-view: false
 
 market:
   upload:
-    dir: /home/alexlakers/my-market
+    dir: /my-market
+
+logging:
+  level:
+    root: WARN
+    com.alex.market: INFO
+  file:
+    name: /var/log/market-app/market.log
