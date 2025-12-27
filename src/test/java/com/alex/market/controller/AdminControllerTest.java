@@ -5,13 +5,10 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
-import com.alex.market.service.CartService;
 import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -25,15 +22,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.web.servlet.FlashMap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -59,7 +50,7 @@ class AdminControllerTest {
     void uploadImage_shouldSetStatus302RedirectToItemPageSuccess() throws Exception {
         byte[] givenImage = new byte[]{(byte) 137, 80, 78, 71};
         MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
-        doNothing().when(imageService).uploadImage(file, VALID_ID);
+        doNothing().when(imageService).updateImageByItemId(file, VALID_ID);
 
         mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.POST, "/admin/images/{id}", VALID_ID)
                         .file(file)
@@ -72,7 +63,7 @@ class AdminControllerTest {
     void uploadImage_shouldSetStatus404WhenItemNotFoundFail() throws Exception {
         byte[] givenImage = new byte[]{(byte) 137, 80, 78, 71};
         MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
-        doThrow(ItemNotFoundException.class).when(imageService).uploadImage(file, INVALID_ID);
+        doThrow(ItemNotFoundException.class).when(imageService).updateImageByItemId(file, INVALID_ID);
 
         mockMvc.perform(MockMvcRequestBuilders.multipart(HttpMethod.POST, "/admin/images/{id}", INVALID_ID)
                         .file(file)

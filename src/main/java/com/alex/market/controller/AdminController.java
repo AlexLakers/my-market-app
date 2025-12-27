@@ -52,7 +52,7 @@ public class AdminController {
 
     @PostMapping(value = "/images/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String uploadImage(@PathVariable Long id, @RequestPart("image") MultipartFile image) {
-        imageService.uploadImage(image, id);
+        imageService.updateImageByItemId(image, id);
         return "redirect:/items/{id}";
     }
 

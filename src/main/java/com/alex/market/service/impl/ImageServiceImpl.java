@@ -28,7 +28,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional
-    public void uploadImage(MultipartFile image, Long id) {
+    public void updateImageByItemId(MultipartFile image, Long id) {
         if (!itemRepository.existsById(id)) {
             throw new ItemNotFoundException(id);
         }
