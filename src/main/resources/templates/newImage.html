@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <form th:action="@{/admin/images/{itemId}(itemId=${item.id()})}" method="post" enctype="multipart/form-data"
+    <form th:action="@{/items/{itemId}/images/new(itemId=${item.id()})}" method="post" enctype="multipart/form-data"
           class="p-4 border rounded shadow-sm bg-white"
     >
         <h5 class="mb-3 text-success">Добавить изображение</h5>

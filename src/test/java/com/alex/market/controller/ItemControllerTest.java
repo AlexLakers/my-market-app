@@ -1,15 +1,18 @@
 package com.alex.market.controller;
 
 import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
 import com.alex.market.controller.ItemController;
 import com.alex.market.exception.ItemNotFoundException;
+import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.model.CartAction;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
+import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,16 +20,22 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.springframework.web.servlet.FlashMap;
 
 import java.util.*;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -39,6 +48,8 @@ class ItemControllerTest {
 
     @MockitoBean(reset = MockReset.BEFORE)
     private ItemService itemService;
+    @MockitoBean(reset = MockReset.BEFORE)
+    private ImageService imageService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -141,6 +152,88 @@ class ItemControllerTest {
                 .andExpect(view().name("item"))
                 .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
                 .andExpect(model().attributeExists("item"));
+    }
+
+    @Test
+    void updateImageByItemId_shouldSetStatus302RedirectToItemPageSuccess() throws Exception {
+        byte[] givenImage = new byte[]{(byte) 137, 80, 78, 71};
+        MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
+        doNothing().when(imageService).updateImageByItemId(file, VALID_ID);
+
+        mockMvc.perform(multipart(HttpMethod.POST, "/items/{id}/images/new", VALID_ID)
+                        .file(file)
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/items/" + VALID_ID));
+    }
+
+    @Test
+    void updateImageByItemId_shouldSetStatus404WhenItemNotFoundFail() throws Exception {
+        byte[] givenImage = new byte[]{(byte) 137, 80, 78, 71};
+        MockMultipartFile file = new MockMultipartFile("image", "image.jpg", "image/jpg", givenImage);
+        doThrow(ItemNotFoundException.class).when(imageService).updateImageByItemId(file, INVALID_ID);
+
+        mockMvc.perform(multipart(HttpMethod.POST, "/admin/images/{id}", INVALID_ID)
+                        .file(file)
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createItem_shouldSetStatus302RedirectToItemsPageAndThenReturnNewImagePageWithAttrAllFlowSuccess() throws Exception {
+        ItemCreateDto givenDto = new ItemCreateDto("title", "desc", 1000L);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "title", "desc", null, 1000L, 1);
+        when(itemService.createItem(givenDto)).thenReturn(expectedDto);
+
+        MvcResult result=mockMvc.perform(post("/items/new")
+                        .param("title", givenDto.title())
+                        .param("description", givenDto.description())
+                        .param("price", String.valueOf(givenDto.price()))
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/items/images/new"))
+                .andExpect(flash().attribute("item", expectedDto))
+                .andReturn();
+
+        FlashMap flashMap = result.getFlashMap();
+        assertThat(flashMap.get("item")).isEqualTo(expectedDto);
+
+        mockMvc.perform(get("/items/images/new")
+                        .session((MockHttpSession) result.getRequest().getSession()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("item", expectedDto))
+                .andExpect(view().name("newImage"));
+    }
+
+    @Test
+    void createItem_shouldSetStatus400_whenTitleAlreadyExistsFail() throws Exception {
+        ItemCreateDto givenDto = new ItemCreateDto("title", "desc", 1000L);
+        doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
+
+        mockMvc.perform(post("/items/new")
+                        .param("title", givenDto.title())
+                        .param("description", givenDto.description())
+                        .param("price", String.valueOf(givenDto.price()))
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void showNewImage_shouldReturnViewNewImageSuccess() throws Exception {
+        ItemDto flashItem = new ItemDto(1L, "Test", "Desc", null, 1000L, 0);
+
+        mockMvc.perform(get("/items/images/new")
+                        .flashAttr("item", flashItem))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("item", flashItem))
+                .andExpect(view().name("newImage"));
+    }
+
+    @Test
+    void showNewItem_shouldSet200AndReturnNewItemPageSuccess() throws Exception {
+        mockMvc.perform(get("/items/new"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("newItem"));
     }
 
 

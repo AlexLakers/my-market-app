@@ -3,16 +3,22 @@ package com.alex.market.controller;
 import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.input.InputFormItem;
 import com.alex.market.dto.input.InputFormItems;
+import com.alex.market.dto.input.ItemCreateDto;
+import com.alex.market.dto.output.ItemDto;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
+import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Map;
@@ -23,6 +29,7 @@ import java.util.Map;
 //@RequestMapping(value = {"/", "/items"})
 public class ItemController {
     private final ItemService itemService;
+    private final ImageService imageService;
 
     @GetMapping(value = {"/", "/items"})
     public String getItems(@RequestParam(required = false) String search,
@@ -72,6 +79,38 @@ public class ItemController {
         model.addAttribute("item", itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart)));
 
         return "item";
+    }
+
+    @GetMapping("/items/new")
+    public String showNewItemPage() {
+        return "newItem";
+    }
+
+    @PostMapping(value = "/items/new")
+    public String createItem(@Validated @ModelAttribute ItemCreateDto item,
+                             BindingResult bindingResult,
+                             RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("errors", bindingResult.getAllErrors());
+            redirectAttributes.addFlashAttribute("title", item.title());
+            redirectAttributes.addFlashAttribute("description", item.description());
+            redirectAttributes.addFlashAttribute("price", item.price());
+            return "redirect:/items/new";
+        }
+        ItemDto itemDto = itemService.createItem(item);
+        redirectAttributes.addFlashAttribute("item", itemDto);
+        return "redirect:/items/images/new";
+    }
+
+    @GetMapping("/items/images/new")
+    public String showNewImagePage() {
+        return "newImage";
+    }
+
+    @PostMapping(value = "/items/{id}/images/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public String updateImageByItemId(@PathVariable Long id, @RequestPart("image") MultipartFile image) {
+        imageService.updateImageByItemId(image, id);
+        return "redirect:/items/{id}";
     }
 
 }
