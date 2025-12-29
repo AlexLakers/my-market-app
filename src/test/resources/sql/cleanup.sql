@@ -1,0 +1,7 @@
+DELETE FROM orders_items;
+DELETE FROM orders;
+DELETE FROM items;
+
+ALTER SEQUENCE items_sequence RESTART WITH 1004;
+ALTER SEQUENCE  orders_sequence RESTART WITH 1004;
+ALTER SEQUENCE  orders_items_sequence RESTART WITH 1004;

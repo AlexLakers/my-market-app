@@ -1,0 +1,33 @@
+services:
+  database:
+    image: postgres:17.0
+    ports:
+      - "${DB_HOST_PORT}:${DB_PORT}"
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+
+  market-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: market
+    restart: always
+    environment:
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+    ports:
+      - "${APP_HOST_PORT}:${APP_PORT}"
+    depends_on:
+      - database
+
+volumes:
+  db-data:
