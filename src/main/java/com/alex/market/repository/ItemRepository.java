@@ -7,6 +7,6 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
-public interface ItemRepository extends ReactiveCrudRepository<Item, Long>{
+public interface ItemRepository extends ReactiveCrudRepository<Item, Long>, QueryItemRepository {
 
 }
