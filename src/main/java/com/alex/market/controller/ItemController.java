@@ -34,8 +34,13 @@ public class ItemController {
                 .map(pageItemsDto -> Rendering.view("items")
                         .modelAttribute("items", pageItemsDto.items())
                         .modelAttribute("search", pageItemsDto.search())
-                        .modelAttribute( "sort", pageItemsDto.sort())
-                        .modelAttribute( "paging", pageItemsDto.pageDto())
+                        .modelAttribute("sort", pageItemsDto.sort())
+                        .modelAttribute("paging", pageItemsDto.pageDto())
                         .build());
+    }
+
+    @GetMapping("/items/new")
+    public Mono<Rendering> showNewItemPage() {
+        return Mono.just(Rendering.view("newItem").build());
     }
 }
