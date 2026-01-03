@@ -1,40 +1,38 @@
 package com.alex.market.model;
 
-import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
-import org.hibernate.annotations.BatchSize;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Getter
 @Setter
-@ToString(exclude = {"order", "item"})
-@EqualsAndHashCode(of = "id")
+@ToString
+@EqualsAndHashCode
 @Builder
 @Table(name = "orders_items")
 @FieldNameConstants
 public class OrderItem {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orders_items_seq")
-    @SequenceGenerator(name = "orders_items_seq", sequenceName = "orders_items_sequence", allocationSize = 1)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
+    @Column("order_id")
+    private Long orderId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "item_id")
-    private Item item;
+    @Column("item_id")
+    private Long itemId;
 
-    @Column(name = "history_price", nullable = false)
+    @Column("history_price")
     private Long historyPrice;
 
-    @Column(nullable = false)
+    @Column("count")
     private Integer count;
+
 }
