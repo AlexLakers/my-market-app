@@ -1,6 +1,4 @@
 server:
-  tomcat:
-    max-http-form-post-size: 5MB
   port: ${APP_PORT:8080}
 
 spring:
@@ -20,30 +18,19 @@ spring:
   main:
     banner-mode: off
 
-  liquibase:
-    change-log: db/changelog/db.changelog-master.xml
-    contexts: dev
-
-  datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USER}
-    password: ${DB_PASS}
-    hikari:
-      connection-timeout: 30000
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-  jpa:
-    properties:
-      hibernate:
-        show_sql: true
-        format_sql: true
-        default_batch_fetch_size: 50
-    hibernate:
-      ddl-auto: none
-    open-in-view: false
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/skeleton_repository
+    username: postgres
+    password: postgres
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30s
+      validation-query: SELECT 1
+  sql:
+    init:
+      mode: always
 
 market:
   upload:
