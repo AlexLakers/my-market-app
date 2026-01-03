@@ -1,9 +1,12 @@
 package com.alex.market.service.impl;
 
 
+import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
+import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;
+import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.ItemSort;
 import com.alex.market.search.PageItemsDto;
@@ -13,9 +16,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -48,6 +53,21 @@ public class ItemServiceImpl implements ItemService {
                 });
     }
 
+    @Override
+    @Transactional
+    public Mono<ItemDto> createItem(ItemCreateDto itemCreateDto) {
+
+        return itemRepository.existsByTitle(itemCreateDto.title())
+                .flatMap(exists -> {
+                    if (exists) {
+                        return Mono.error(new TitleAlreadyExistsException(itemCreateDto.title()));
+                    }
+                    return itemRepository.save(toItem(itemCreateDto));
+                })
+                .map(savedItem -> itemMapper.toDto(savedItem, new HashMap<>()));
+
+    }
+
     private List<List<ItemDto>> groupItems(List<ItemDto> content, Integer groupSize) {
         List<ItemDto> groupItems = content != null ? content : new ArrayList<>();
 
@@ -72,6 +92,10 @@ public class ItemServiceImpl implements ItemService {
                 searchDto.search(),
                 searchDto.sortColumn().name(),
                 new PageDto(searchDto.pageSize(), searchDto.pageNumber(), hasPrev, hasNext));
+    }
+
+    private Item toItem(ItemCreateDto dto) {
+        return Item.builder().title(dto.title()).description(dto.description()).price(dto.price()).build();
     }
 
     private ItemDto createEmptyItemDto() {
