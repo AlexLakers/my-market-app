@@ -1,6 +1,5 @@
 package com.alex.market.search;
 
-import com.alex.market.model.Item;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Sort;

@@ -1,6 +1,5 @@
 package com.alex.market.search;
 
-import com.alex.market.model.Item;
 import jakarta.persistence.criteria.Predicate;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
