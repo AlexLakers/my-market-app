@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 class ItemRepositoryTest {
 
-    private static final Long MIN_PRICE=500L;
+    private static final Long MIN_PRICE = 500L;
 
     @Autowired
     private ItemRepository itemRepository;
@@ -35,13 +35,13 @@ class ItemRepositoryTest {
             "description1, 2",
             "test1, 2"
     })
-    void findAll_shouldReturnPageWithContentBySearch(String search,int expectedSize) {
+    void findAll_shouldReturnPageWithContentBySearch(String search, int expectedSize) {
 
         var pageable = PageRequest.of(0, expectedSize, Sort.by("price"));
         Page<Item> page = itemRepository.findAll(search, pageable)
                 .block();
         Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.getContent()).first().hasFieldOrPropertyWithValue(Item.Fields.price,MIN_PRICE);
+        Assertions.assertThat(page.getContent()).first().hasFieldOrPropertyWithValue(Item.Fields.price, MIN_PRICE);
         Assertions.assertThat(page.getTotalElements()).isEqualTo(expectedSize);
         Assertions.assertThat(page.getNumber()).isEqualTo(0);
         Assertions.assertThat(page.getSize()).isEqualTo(expectedSize);
@@ -57,11 +57,25 @@ class ItemRepositoryTest {
                 .block();
 
         Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.getContent()).first().hasFieldOrPropertyWithValue(Item.Fields.price,MIN_PRICE);
+        Assertions.assertThat(page.getContent()).first().hasFieldOrPropertyWithValue(Item.Fields.price, MIN_PRICE);
         Assertions.assertThat(page.getTotalElements()).isEqualTo(3);
         Assertions.assertThat(page.getNumber()).isEqualTo(0);
         Assertions.assertThat(page.getSize()).isEqualTo(2);
         Assertions.assertThat(page.hasNext()).isTrue();
         Assertions.assertThat(page.hasPrevious()).isFalse();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            {
+                    "test1-ball, true",
+                    "test1-car, true",
+                    "new-item, false"
+            }
+    )
+    void existsByTitle_shouldReturnTrue_whenExists(String title, boolean expected) {
+        boolean actualExists=itemRepository.existsByTitle(title).block();
+
+        Assertions.assertThat(actualExists).isEqualTo(expected);
     }
 }
