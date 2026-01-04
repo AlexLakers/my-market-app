@@ -7,6 +7,8 @@ import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,7 +23,7 @@ import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
-//@Validated
+@Validated
 public class ItemController {
     private final ItemService itemService;
 
@@ -38,6 +40,7 @@ public class ItemController {
                         .modelAttribute("search", pageItemsDto.search())
                         .modelAttribute("sort", pageItemsDto.sort())
                         .modelAttribute("paging", pageItemsDto.pageDto())
+                        .status(HttpStatus.OK)
                         .build());
     }
 
@@ -57,11 +60,14 @@ public class ItemController {
                     .modelAttribute("title", item.title())
                     .modelAttribute("description", item.description())
                     .modelAttribute("price", item.price())
+                    .status(HttpStatus.BAD_REQUEST)
                     .build());
         }
         return itemService.createItem(item)
                 .map(savedItemDto -> Rendering.view("newImage")
-                        .modelAttribute("item", savedItemDto).build());
+                        .modelAttribute("item", savedItemDto)
+                        .status(HttpStatus.CREATED)
+                        .build());
 
     }
 }
