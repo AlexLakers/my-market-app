@@ -42,7 +42,26 @@ public class ItemController {
     }
 
     @GetMapping("/items/new")
-    public Mono<Rendering> showNewItemPage() {
-        return Mono.just(Rendering.view("newItem").build());
+    public Mono<String> showNewItemPage() {
+        return Mono.just("newItem");
+    }
+
+
+    @PostMapping(value = "/items/new")
+    public Mono<Rendering> createItem(@Validated @ModelAttribute ItemCreateDto item,
+                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+
+            return Mono.just(Rendering.view("newItem")
+                    .modelAttribute("errors", bindingResult.getAllErrors())
+                    .modelAttribute("title", item.title())
+                    .modelAttribute("description", item.description())
+                    .modelAttribute("price", item.price())
+                    .build());
+        }
+        return itemService.createItem(item)
+                .map(savedItemDto -> Rendering.view("newImage")
+                        .modelAttribute("item", savedItemDto).build());
+
     }
 }
