@@ -1,15 +1,19 @@
 package com.alex.market.controller;
 
+import com.alex.market.dto.input.ItemCreateDto;
+import com.alex.market.dto.output.ItemDto;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 
@@ -19,7 +23,7 @@ import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
-//@Validated
+@Validated
 public class ItemController {
     private final ItemService itemService;
 
@@ -34,8 +38,36 @@ public class ItemController {
                 .map(pageItemsDto -> Rendering.view("items")
                         .modelAttribute("items", pageItemsDto.items())
                         .modelAttribute("search", pageItemsDto.search())
-                        .modelAttribute( "sort", pageItemsDto.sort())
-                        .modelAttribute( "paging", pageItemsDto.pageDto())
+                        .modelAttribute("sort", pageItemsDto.sort())
+                        .modelAttribute("paging", pageItemsDto.pageDto())
+                        .status(HttpStatus.OK)
                         .build());
+    }
+
+    @GetMapping("/items/new")
+    public Mono<String> showNewItemPage() {
+        return Mono.just("newItem");
+    }
+
+
+    @PostMapping(value = "/items/new")
+    public Mono<Rendering> createItem(@Validated @ModelAttribute ItemCreateDto item,
+                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+
+            return Mono.just(Rendering.view("newItem")
+                    .modelAttribute("errors", bindingResult.getAllErrors())
+                    .modelAttribute("title", item.title())
+                    .modelAttribute("description", item.description())
+                    .modelAttribute("price", item.price())
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build());
+        }
+        return itemService.createItem(item)
+                .map(savedItemDto -> Rendering.view("newImage")
+                        .modelAttribute("item", savedItemDto)
+                        .status(HttpStatus.CREATED)
+                        .build());
+
     }
 }

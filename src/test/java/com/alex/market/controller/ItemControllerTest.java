@@ -1,7 +1,9 @@
 package com.alex.market.controller;
 
+import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
+import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.filter.CartWebFilter;
 import com.alex.market.model.Item;
@@ -24,6 +26,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.MockServerConfigurer;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClientConfigurer;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
@@ -39,7 +46,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(ItemController.class)
-@Import(GlobalExceptionHandler.class)
 @ActiveProfiles("test")
 class ItemControllerTest {
 
@@ -112,6 +118,53 @@ class ItemControllerTest {
                     assert html.contains("test1-title");
                 });
     }
+
+    @Test
+    void createItem_shouldSet201StatusAndReturnHtmlPageNewImageSuccess() {
+        ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
+        ItemDto itemDto = new ItemDto(VALID_ID, givenDto.title(), givenDto.description(), null, givenDto.price(), 1);
+        Mockito.when(itemService.createItem(givenDto)).thenReturn(Mono.just(itemDto));
+
+        testClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items/new")
+                        .queryParam("title", givenDto.title())
+                        .queryParam("description", givenDto.description())
+                        .queryParam("price", givenDto.price())
+                        .build())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html -> {
+                    assert html.contains("<i class=\"bi bi-check-circle\"></i> Товар успешно создан!");
+                    assert html.contains("test-title");
+                });
+    }
+
+    @Test
+    void createItem_shouldSet400StatusAndReturnHtmlPage400Fail() {
+        ItemCreateDto givenDto = new ItemCreateDto("already-title", "description", 1000L);
+        Mockito.doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
+
+        testClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items/new")
+                        .queryParam("title", givenDto.title())
+                        .queryParam("description", givenDto.description())
+                        .queryParam("price", givenDto.price())
+                        .build())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html -> {
+                    assert html.contains("Неверный запрос:");
+                });
+    }
+
 
     void mockCartWebFilter() {
         Mockito.when(cartWebFilter.filter(Mockito.any(ServerWebExchange.class), Mockito.any(WebFilterChain.class)))
