@@ -1,7 +1,9 @@
 package com.alex.market.service;
 
+import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
+import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;
 import com.alex.market.mapper.ItemMapperImpl;
 import com.alex.market.model.Item;
@@ -22,6 +24,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
@@ -102,6 +105,26 @@ class ItemServiceTest {
 
         return new PageImpl<Item>(content, PageRequest.of(pageNumber, pageSize), total);
     }
+
+    @Test
+    void createItem_shouldReturnSavedItemWithIdSuccess() {
+        Mockito.when(itemRepository.existsByTitle("test-title")).thenReturn(Mono.just(Boolean.FALSE));
+        Mockito.when(itemRepository.save(Mockito.any(Item.class))).thenReturn(Mono.just(Item.builder().id(VALID_ID).build()));
+        ItemCreateDto givenDto=new ItemCreateDto("test-title","description",1000L);
+        ItemDto actualSavedItemDto=itemService.createItem(givenDto).block();
+
+        Assertions.assertThat(actualSavedItemDto).isNotNull()
+                .hasFieldOrPropertyWithValue(Item.Fields.id,VALID_ID);
+    }
+    @Test
+    void createItem_shouldThrowTitleAlreadyExistsException_whenTitleAlreadyExistsFail() {
+        Mockito.when(itemRepository.existsByTitle("already-title")).thenReturn(Mono.just(Boolean.TRUE));
+        ItemCreateDto givenDto=new ItemCreateDto("already-title","description",1000L);
+
+        Assertions.assertThatExceptionOfType(TitleAlreadyExistsException.class)
+                .isThrownBy(()->itemService.createItem(givenDto).block());
+    }
+
     @TestConfiguration
     static class TestConfig {
    /*     @Bean
