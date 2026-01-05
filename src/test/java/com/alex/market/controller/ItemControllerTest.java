@@ -3,6 +3,8 @@ package com.alex.market.controller;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
+import com.alex.market.exception.ImageStorageException;
+import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.filter.CartWebFilter;
@@ -10,6 +12,7 @@ import com.alex.market.model.Item;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
+import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,9 +20,12 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,8 +34,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClientConfigurer;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
@@ -55,6 +60,8 @@ class ItemControllerTest {
     @MockitoBean(reset = MockReset.BEFORE)
     private ItemService itemService;
 
+    @MockitoBean
+    private ImageService imageService;
     @MockitoBean(reset = MockReset.BEFORE)
     private CartWebFilter cartWebFilter;
 
@@ -163,6 +170,49 @@ class ItemControllerTest {
                 .value(html -> {
                     assert html.contains("Неверный запрос:");
                 });
+    }
+
+    @Test
+    void updateImageById_shouldUpdateImageByItemIdSuccess() {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
+                .filename("image.jpg")
+                .contentType(MediaType.IMAGE_JPEG);
+
+
+        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class),Mockito.anyLong())).thenReturn(Mono.empty());
+
+        testClient.post()
+                .uri("/items/{id}/images/new", VALID_ID)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(builder.build())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/items/"+VALID_ID)
+                .expectBody(String.class);
+    }
+
+    @Test
+    void updateImageById_shouldSet404StatusAndReturnErrorPage_whenItemNotFountFail() {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
+                .filename("image.jpg")
+                .contentType(MediaType.IMAGE_JPEG);
+
+
+        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class),Mockito.anyLong()))
+                .thenReturn(Mono.error(()-> new ItemNotFoundException(INVALID_ID)));
+
+        testClient.post()
+                .uri("/items/{id}/images/new", INVALID_ID)
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .bodyValue(builder.build())
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody(String.class)
+                .value(html -> {
+            assert html.contains("Страница не найдена");
+        });
     }
 
 
