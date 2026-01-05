@@ -237,7 +237,6 @@ class ItemControllerTest {
 
     @Test
     void getItemByIdWithCartCount_shouldSet404AndReturnErrorPageFail() {
-        ItemDto itemDto = new ItemDto(INVALID_ID, "title", "description", null, 1000L, 1);
         Mockito.when(itemService.getItemByIdWithCartCount(INVALID_ID,cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
 
         testClient.get()

@@ -1,10 +1,13 @@
 package com.alex.market.service;
 
 import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.output.CartDto;
+import com.alex.market.dto.output.ItemDto;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.mapper.ItemMapper;
 import com.alex.market.mapper.ItemMapperImpl;
 import com.alex.market.model.CartAction;
+import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.service.impl.CartServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,10 +18,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
@@ -70,8 +76,17 @@ class CartServiceTest {
     }
 
     @Test
-    void getItemsCartWithTotal() {
+    void getItemsCartWithTotal_shouldReturnCartDtoWithTotalCountSuccess() {
+        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
+        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
+        CartDto expectedDto=new CartDto(List.of(itemDto),2000L);
+        when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(Flux.fromIterable(List.of(expectedItem)));
+
+        CartDto actualDto=cartService.getItemsCartWithTotal(cartItemsCount).block();
+
+        assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
+
 
     @Test
     void getItemsCartWithCounts() {
