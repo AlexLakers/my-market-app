@@ -91,11 +91,44 @@ class ImageServiceTest {
         Path expectedFile = baseDir.resolve("images").resolve("1.jpeg");
         assertThat(Files.exists(expectedFile)).isTrue();
     }
+    @Test
+    void updateImageByItemId_shouldThrowImageStoredException_whenFileIsTooBig() throws IOException {
+        byte[] imageBytes = new byte[5700000];
+        DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
+
+        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
+        when(filePart.headers()).thenReturn(new HttpHeaders() {{
+            setContentType(MediaType.IMAGE_JPEG);
+            setContentLength(imageBytes.length);
+        }});
+
+        when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
+
+        Assertions.assertThatExceptionOfType(ImageStorageException.class)
+                .isThrownBy(() -> imageService.updateImageByItemId(filePart, VALID_ID).block());
+    }
+
+    @Test
+    void updateImageByItemId_shouldThrowImageStoredException_whenFileIsNotImage() throws IOException {
+        byte[] imageBytes = new byte[5];
+        DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
+
+        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
+        when(filePart.headers()).thenReturn(new HttpHeaders() {{
+            setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            setContentLength(imageBytes.length);
+        }});
+
+        when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
+
+        Assertions.assertThatExceptionOfType(ImageStorageException.class)
+                .isThrownBy(() -> imageService.updateImageByItemId(filePart, VALID_ID).block());
+    }
 
 
     @Test
     void updateImageByItemId_whenDirectoryDoesNotExist_shouldCreateIt() {
-        // Arrange
+
         byte[] imageBytes = new byte[]{1, 2, 3, 4, 5};
         DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
 
@@ -117,11 +150,9 @@ class ImageServiceTest {
 
         }
 
-        // Act & Assert
         StepVerifier.create(imageService.updateImageByItemId(filePart, VALID_ID))
                 .verifyComplete();
 
-        // Verify directory was created
         assertThat(Files.exists(imagesDir)).isTrue();
         assertThat(Files.isDirectory(imagesDir)).isTrue();
     }
