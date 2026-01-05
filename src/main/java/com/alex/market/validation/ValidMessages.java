@@ -11,4 +11,7 @@ public interface ValidMessages {
     String PAGE_MIN = "The page minimum must be greater than 0";
     String SIZE_MIN = "The size must be greater than 0";
     String SIZE_MAX="The size must be less than 100";
+    String FILE_EMPTY = "The file must not be empty";
+    String FILE_TOO_BIG = "The file must be less";
+    String FILE_NOT_IMAGE = "The file must be image";
 }

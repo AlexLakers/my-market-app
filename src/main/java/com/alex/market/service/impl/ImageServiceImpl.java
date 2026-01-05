@@ -5,6 +5,7 @@ import com.alex.market.exception.ImageStorageException;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.service.ImageService;
+import com.alex.market.validation.ValidMessages;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBufferUtils;
@@ -25,14 +26,14 @@ public class ImageServiceImpl implements ImageService {
     private final ItemRepository itemRepository;
     private final ConfigProperties configProperties;
 
+
     @Override
     public Mono<Void> updateImageByItemId(FilePart file, Long id) {
-        return validateFile(file)
-                .then(itemRepository.existsById(id)
+        return itemRepository.existsById(id)
                 .filter(Boolean.TRUE::equals)
                 .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
                 .then(saveImage(file, id))
-                .flatMap(imgPath -> itemRepository.updateImagePathById(id, imgPath)))
+                .flatMap(imgPath -> itemRepository.updateImagePathById(id, imgPath))
                 .then();
     }
 
@@ -40,12 +41,17 @@ public class ImageServiceImpl implements ImageService {
         return DataBufferUtils.join(file.content())
                 .flatMap(dataBuffer -> {
                     try {
+                        MediaType contentType = file.headers().getContentType();
+                        if (contentType == null || !contentType.getType().equalsIgnoreCase("image")) {
+                            return Mono.error(new ImageStorageException(ValidMessages.FILE_NOT_IMAGE));
+                        }
+
                         int readable = dataBuffer.readableByteCount();
                         if (readable <= 0) {
-                            return Mono.error(new IllegalStateException("Пустой файл"));
+                            return Mono.error(new ImageStorageException(ValidMessages.FILE_EMPTY));
                         }
                         if (readable > configProperties.getMaxSize()) {
-                            return Mono.error(new IllegalArgumentException("Слишком большой файл"));
+                            return Mono.error(new ImageStorageException(ValidMessages.FILE_TOO_BIG));
                         }
 
                         byte[] bytes = new byte[readable];
@@ -59,15 +65,6 @@ public class ImageServiceImpl implements ImageService {
                 });
     }
 
-    private Mono<Void> validateFile(FilePart file) {
-        return Mono.fromCallable(() -> {
-            MediaType contentType = file.headers().getContentType();
-            if (contentType == null || !contentType.getType().equalsIgnoreCase("image")) {
-                throw new IllegalArgumentException("Нужен файл изображения");
-            }
-            return null;
-        });
-    }
 
     private String generateNewImagePath(Long id, String origName) {
         String type = getTypeFromFileName(origName);
@@ -82,7 +79,7 @@ public class ImageServiceImpl implements ImageService {
     }
 
     private Mono<String> saveToFileSystem(byte[] content, String fileName) {
-        Path baseDir=configProperties.getDir();
+        Path baseDir = configProperties.getDir();
         return Mono.fromCallable(() -> {
             Path imagesDir = baseDir.resolve("images");
             Path fullPath = imagesDir.resolve(fileName);
