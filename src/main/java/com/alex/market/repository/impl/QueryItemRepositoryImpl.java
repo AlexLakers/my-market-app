@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.data.relational.core.query.Criteria;
 import org.springframework.data.relational.core.query.Query;
+import org.springframework.data.relational.core.query.Update;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,6 +36,15 @@ public class QueryItemRepositoryImpl implements QueryItemRepository {
         return items.collectList()
                 .zipWith(count)
                 .map(tuple -> new PageImpl<Item>(tuple.getT1(), pageable, tuple.getT2()));
+    }
+
+    @Override
+    public Mono<Void> updateImagePathById(Long id, String imagePath) {
+        return r2dbcEntityTemplate.update(Item.class)
+                .matching(Query.query(Criteria.where("id").is(id)))
+                .apply(Update.update("img_path", imagePath))
+                .then();
+
     }
       /*  Criteria criteria = buildSearchCriteria(search);
 
