@@ -1,5 +1,6 @@
 package com.alex.market.controller;
 
+import com.alex.market.config.ConfigProperties;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.codec.multipart.FilePart;
@@ -51,6 +53,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(ItemController.class)
+@Import({ConfigProperties.class, GlobalExceptionHandler.class})
 @ActiveProfiles("test")
 class ItemControllerTest {
 
@@ -180,7 +183,7 @@ class ItemControllerTest {
                 .contentType(MediaType.IMAGE_JPEG);
 
 
-        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class),Mockito.anyLong())).thenReturn(Mono.empty());
+        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong())).thenReturn(Mono.empty());
 
         testClient.post()
                 .uri("/items/{id}/images/new", VALID_ID)
@@ -188,7 +191,7 @@ class ItemControllerTest {
                 .bodyValue(builder.build())
                 .exchange()
                 .expectStatus().is3xxRedirection()
-                .expectHeader().location("/items/"+VALID_ID)
+                .expectHeader().location("/items/" + VALID_ID)
                 .expectBody(String.class);
     }
 
@@ -200,8 +203,8 @@ class ItemControllerTest {
                 .contentType(MediaType.IMAGE_JPEG);
 
 
-        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class),Mockito.anyLong()))
-                .thenReturn(Mono.error(()-> new ItemNotFoundException(INVALID_ID)));
+        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong()))
+                .thenReturn(Mono.error(() -> new ItemNotFoundException(INVALID_ID)));
 
         testClient.post()
                 .uri("/items/{id}/images/new", INVALID_ID)
@@ -211,10 +214,42 @@ class ItemControllerTest {
                 .expectStatus().isNotFound()
                 .expectBody(String.class)
                 .value(html -> {
-            assert html.contains("Страница не найдена");
-        });
+                    assert html.contains("Страница не найдена");
+                });
     }
 
+    @Test
+    void getItemByIdWithCartCount_shouldSet200AndReturnItemByIdSuccess() {
+        ItemDto itemDto = new ItemDto(VALID_ID, "title", "description", null, 1000L, 1);
+        Mockito.when(itemService.getItemByIdWithCartCount(VALID_ID,cartItemsCount)).thenReturn(Mono.just(itemDto));
+
+        testClient.get()
+                .uri("/items/{id}", VALID_ID)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html -> {
+                    assert html.contains("title");
+                    assert html.contains("description");
+                });
+    }
+
+    @Test
+    void getItemByIdWithCartCount_shouldSet404AndReturnErrorPageFail() {
+        ItemDto itemDto = new ItemDto(INVALID_ID, "title", "description", null, 1000L, 1);
+        Mockito.when(itemService.getItemByIdWithCartCount(INVALID_ID,cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
+
+        testClient.get()
+                .uri("/items/{id}", INVALID_ID)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html->{
+                    assert html.contains("404");
+                });
+    }
 
     void mockCartWebFilter() {
         Mockito.when(cartWebFilter.filter(Mockito.any(ServerWebExchange.class), Mockito.any(WebFilterChain.class)))

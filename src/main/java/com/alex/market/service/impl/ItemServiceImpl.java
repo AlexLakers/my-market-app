@@ -4,6 +4,7 @@ package com.alex.market.service.impl;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
+import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;
 import com.alex.market.model.Item;
@@ -22,6 +23,7 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -66,6 +68,13 @@ public class ItemServiceImpl implements ItemService {
                 })
                 .map(savedItem -> itemMapper.toDto(savedItem, new HashMap<>()));
 
+    }
+
+    @Override
+    public Mono<ItemDto> getItemByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap) {
+        return itemRepository.findById(id)
+                .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
+                .map(it -> itemMapper.toDto(it, cartCountMap));
     }
 
     private List<List<ItemDto>> groupItems(List<ItemDto> content, Integer groupSize) {

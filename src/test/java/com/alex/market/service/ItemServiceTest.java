@@ -3,6 +3,7 @@ package com.alex.market.service;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
+import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;
 import com.alex.market.mapper.ItemMapperImpl;
@@ -123,6 +124,24 @@ class ItemServiceTest {
 
         Assertions.assertThatExceptionOfType(TitleAlreadyExistsException.class)
                 .isThrownBy(()->itemService.createItem(givenDto).block());
+    }
+
+    @Test
+    void getItemByIdWithCart_shouldReturnDtoWithIdSuccess(){
+        Item item = Item.builder().id(VALID_ID).build();
+        when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(item));
+
+            ItemDto actualDto=itemService.getItemByIdWithCartCount(VALID_ID,cartItemsCount).block();
+            Assertions.assertThat(actualDto).isNotNull()
+                    .hasFieldOrPropertyWithValue(Item.Fields.id,VALID_ID);
+
+    }
+    @Test
+    void getItemByIdWithCartCount_shouldThrowItemNotFoundException_whenItemNotFoundFail(){
+        when(itemRepository.findById(INVALID_ID)).thenReturn(Mono.empty());
+
+        Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
+                .isThrownBy(()->itemService.getItemByIdWithCartCount(INVALID_ID,cartItemsCount).block());
     }
 
     @TestConfiguration
