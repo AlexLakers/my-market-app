@@ -5,10 +5,12 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
+import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -26,6 +28,7 @@ import java.util.Map;
 @Validated
 public class ItemController {
     private final ItemService itemService;
+    private final ImageService imageService;
 
     @GetMapping(value = {"/", "/items"})
     public Mono<Rendering> getItems(@RequestParam(required = false) String search,
@@ -70,4 +73,15 @@ public class ItemController {
                         .build());
 
     }
+
+    @GetMapping("/items/images/new")
+    public Mono<String> showNewImagePage() {
+        return Mono.just("newImage");
+    }
+
+    @PostMapping("/items/{id}/images/new")
+    public Mono<String> updateImageById(@PathVariable Long id, @RequestPart FilePart image) {
+        return imageService.updateImageByItemId(image, id).thenReturn("redirect:/items/" + id);
+    }
+
 }
