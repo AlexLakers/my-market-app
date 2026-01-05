@@ -3,6 +3,7 @@ package com.alex.market.repository;
 import com.alex.market.config.PostgresTestconteinerConfig;
 import com.alex.market.model.Item;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -74,8 +75,18 @@ class ItemRepositoryTest {
             }
     )
     void existsByTitle_shouldReturnTrue_whenExists(String title, boolean expected) {
-        boolean actualExists=itemRepository.existsByTitle(title).block();
+        boolean actualExists = itemRepository.existsByTitle(title).block();
 
         Assertions.assertThat(actualExists).isEqualTo(expected);
+    }
+
+    @Test
+    void updateImagePathById_shouldUpdateImagePathInDB() {
+        Long id = 1000L;
+        Item actualWithPath = itemRepository.updateImagePathById(id, "images/1000.jpg")
+                .then(itemRepository.findById(id)).block();
+
+        Assertions.assertThat(actualWithPath)
+                .hasFieldOrPropertyWithValue(Item.Fields.imgPath,"images/1000.jpg");
     }
 }
