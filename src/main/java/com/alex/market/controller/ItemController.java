@@ -84,4 +84,14 @@ public class ItemController {
         return imageService.updateImageByItemId(image, id).thenReturn("redirect:/items/" + id);
     }
 
+    @GetMapping("/items/{id}")
+    public Mono<Rendering> getItem(@PathVariable Long id,
+                                   @SessionAttribute("cart") Map<Long, Integer> cart) {
+        return itemService.getItemByIdWithCartCount(id, cart)
+                .map(dto -> Rendering.view("item")
+                        .modelAttribute("item", dto)
+                        .status(HttpStatus.OK)
+                        .build());
+    }
+
 }
