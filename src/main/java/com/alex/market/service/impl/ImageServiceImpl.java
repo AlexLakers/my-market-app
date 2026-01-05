@@ -50,7 +50,9 @@ public class ImageServiceImpl implements ImageService {
 
                         byte[] bytes = new byte[readable];
                         dataBuffer.read(bytes);
-                        return null;
+
+                        String fileName = generateNewImagePath(id, file.filename());
+                        return saveToFileSystem(bytes, fileName);
                     } finally {
                         DataBufferUtils.release(dataBuffer);
                     }
@@ -67,6 +69,32 @@ public class ImageServiceImpl implements ImageService {
         });
     }
 
+    private String generateNewImagePath(Long id, String origName) {
+        String type = getTypeFromFileName(origName);
+        return id + type;
+    }
 
+    private String getTypeFromFileName(String fileName) {
+        return Optional.ofNullable(fileName)
+                .filter(name -> name.contains("."))
+                .map(name -> name.substring(name.lastIndexOf(".")))
+                .orElse("");
+    }
+
+    private Mono<String> saveToFileSystem(byte[] content, String fileName) {
+        Path baseDir=configProperties.getDir();
+        return Mono.fromCallable(() -> {
+            Path imagesDir = baseDir.resolve("images");
+            Path fullPath = imagesDir.resolve(fileName);
+            try {
+                Files.createDirectories(fullPath.getParent());
+
+                Files.write(fullPath, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                return baseDir.relativize(fullPath).toString();
+            } catch (Exception e) {
+                throw new ImageStorageException(fullPath.toString());
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
 }
 
