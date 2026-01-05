@@ -6,8 +6,12 @@ import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 public interface ItemService {
     Mono<PageItemsDto> getItemsPage(SearchDto searchDto);
 
     Mono<ItemDto> createItem(ItemCreateDto itemCreateDto);
+
+    Mono<ItemDto> getItemByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap);
 }
