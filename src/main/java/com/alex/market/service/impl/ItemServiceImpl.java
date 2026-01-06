@@ -1,6 +1,7 @@
 package com.alex.market.service.impl;
 
 
+import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
@@ -12,6 +13,7 @@ import com.alex.market.repository.ItemRepository;
 import com.alex.market.search.ItemSort;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
+import com.alex.market.service.CartService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +37,7 @@ public class ItemServiceImpl implements ItemService {
 
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
+    private final CartService cartService;
 
 
     public Mono<PageItemsDto> getItemsPage(SearchDto searchDto) {
@@ -93,6 +96,21 @@ public class ItemServiceImpl implements ItemService {
                     return group;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
+        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
+        Long itemId = cartChangeDto.itemId();
+        return itemRepository.findById(cartChangeDto.itemId())
+                .switchIfEmpty(Mono.error(new ItemNotFoundException(itemId)))
+                .flatMap(item ->
+                        cartService.changeItemCount(cartChangeDto)
+                                .map(newCount -> {
+                                    cart.put(itemId, newCount);
+                                    return itemMapper.toDto(item, cart);
+                                }));
+
     }
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {

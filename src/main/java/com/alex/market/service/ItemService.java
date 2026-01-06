@@ -1,5 +1,6 @@
 package com.alex.market.service;
 
+import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.search.PageItemsDto;
@@ -14,4 +15,6 @@ public interface ItemService {
     Mono<ItemDto> createItem(ItemCreateDto itemCreateDto);
 
     Mono<ItemDto> getItemByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap);
+
+   Mono <ItemDto> changeCartItemCount(CartChangeDto cartChangeDto);
 }

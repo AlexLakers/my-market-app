@@ -1,5 +1,8 @@
 package com.alex.market.controller;
 
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.InputFormItem;
+import com.alex.market.dto.input.InputFormItems;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.search.PageItemsDto;
@@ -7,6 +10,7 @@ import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -92,6 +96,33 @@ public class ItemController {
                         .modelAttribute("item", dto)
                         .status(HttpStatus.OK)
                         .build());
+    }
+
+    @PostMapping("/items")
+    public Mono<String> changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
+                                                        @SessionAttribute Map<Long, Integer> cart
+    ) {
+
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .thenReturn("redirect:/items?search=" + params.search()
+                            + "&sort=" + params.sort()
+                            + "&pageSize=" + params.pageSize()
+                            + "&pageNumber=" + params.pageNumber());
+
+    }
+
+
+    @PostMapping("/items/{id}")
+    public Mono<Rendering> changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
+                                                          @SessionAttribute Map<Long, Integer> cart
+    ) {
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .map(itemDto -> Rendering
+                        .view("item")
+                        .modelAttribute("item", itemDto)
+                        .status(HttpStatus.OK)
+                        .build());
+
     }
 
 }
