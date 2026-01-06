@@ -19,10 +19,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.SessionAttribute;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,8 +45,8 @@ class OrderControllerTest {
 
     @Test
     void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
-       ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
-        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
+        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
         Mockito.when(orderService.findAllOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
 
         testClient.get()
@@ -52,14 +55,15 @@ class OrderControllerTest {
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.TEXT_HTML)
                 .expectBody(String.class)
-                .value(html->{
+                .value(html -> {
                     assert html.contains("testTitle1 (1 шт.) 1000 руб.");
                 });
     }
+
     @Test
-    void getOrderById_shouldReturnOneDtoAndViewSuccess(){
+    void getOrderById_shouldReturnOneDtoAndViewSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
-        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
         Mockito.when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
 
         testClient.get()
@@ -68,13 +72,13 @@ class OrderControllerTest {
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.TEXT_HTML)
                 .expectBody(String.class)
-                .value(html->{
+                .value(html -> {
                     assert html.contains("Заказ №1");
                 });
     }
 
     @Test
-    void getOrderById_shouldSetStatus404_whenNotFoundFail(){
+    void getOrderById_shouldSetStatus404_whenNotFoundFail() {
         Mockito.when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
 
         testClient.get()
@@ -83,9 +87,32 @@ class OrderControllerTest {
                 .expectStatus().isNotFound()
                 .expectHeader().contentType(MediaType.TEXT_HTML)
                 .expectBody(String.class)
-                .value(html->{
+                .value(html -> {
                     assert html.contains("404");
                 });
     }
+
+    @Test
+    void createOrder_shouldSet201AndRedirectToOrderPage() {
+        Mockito.when(orderService.createOrder(Mockito.anyMap())).thenReturn(Mono.just(VALID_ID));
+
+        testClient.post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/orders/" + VALID_ID + "?newOrder=true")
+                .expectBody(String.class);
+
+    }
+
+  /*  @PostMapping("/buy")
+    public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
+
+        return orderService.createOrder(cart)
+                .map(id -> {
+                    cart.clear();
+                    return "redirect:/orders/" + id + "?newOrder=true";
+                });
+    }*/
 
 }
