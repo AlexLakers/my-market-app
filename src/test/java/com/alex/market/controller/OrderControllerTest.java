@@ -5,6 +5,8 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
+import com.alex.market.model.Order;
+import com.alex.market.repository.projection.OrderItemsDetails;
 import com.alex.market.service.ItemService;
 import com.alex.market.service.OrderService;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -38,7 +41,7 @@ class OrderControllerTest {
     private OrderService orderService;
 
     @Test
-    void getAllOrders() {
+    void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
         Mockito.when(orderService.findAllOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
@@ -54,7 +57,7 @@ class OrderControllerTest {
                 });
     }
     @Test
-    void findOrderWithItems_shouldReturnOneDtoAndViewSuccess(){
+    void getOrderById_shouldReturnOneDtoAndViewSuccess(){
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
         Mockito.when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
@@ -71,7 +74,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void findOrderWithItems_shouldSetStatus404_whenNotFoundFail(){
+    void getOrderById_shouldSetStatus404_whenNotFoundFail(){
         Mockito.when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
 
         testClient.get()
