@@ -44,6 +44,8 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public Mono<Integer> changeItemCount(CartChangeDto cartChangeDto) {
+        log.debug("Change item count with id: {}, action: {}", cartChangeDto.itemId(), cartChangeDto.action());
+
         return itemRepository.existsById(cartChangeDto.itemId())
                 .filter(Boolean.TRUE::equals)
                 .switchIfEmpty(Mono.error(new ItemNotFoundException(cartChangeDto.itemId())))
@@ -52,7 +54,13 @@ public class CartServiceImpl implements CartService {
                             case PLUS -> incrementItemCount(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
                             case MINUS -> decrementItemCount(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
                             case DELETE -> deleteItem(cartChangeDto.itemId(), cartChangeDto.cartItemsCount());
-                        }));
+                        }))
+                .doOnNext(newCount ->
+                        log.debug("New count for item with id: {} {}", cartChangeDto.itemId(), newCount))
+                .doOnError(ItemNotFoundException.class, error ->
+                        log.warn("Cannot change count: item wit id: {} not found", cartChangeDto.itemId()))
+                .doOnError(error ->
+                        log.error("Failed to change item count", error));
     }
 
     public Integer deleteItem(Long itemId, Map<Long, Integer> cartItemsCount) {
@@ -62,7 +70,10 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public Mono<CartDto> getItemsCartWithTotal(Map<Long, Integer> cartItemsCount) {
+        log.info("Getting cart with total, items count: {}", cartItemsCount != null ? cartItemsCount.size() : 0);
+
         if (cartItemsCount == null || cartItemsCount.isEmpty()) {
+            log.debug("Empty cart, returning empty DTO");
             return Mono.just(new CartDto(List.of(), 0L));
         }
 
@@ -76,17 +87,25 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public Mono<Map<Item, Integer>> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount) {
-        return getItemsByCart(cartItemsCount)
-                .collectMap(item -> item, item -> cartItemsCount.getOrDefault(item.getId(), 0));
-    }
+        int cartSize = cartItemsCount != null ? cartItemsCount.size() : 0;
+        log.debug("Getting items with counts, cart size: {}", cartSize);
 
+        return getItemsByCart(cartItemsCount)
+                .collectMap(item -> item, item -> cartItemsCount.getOrDefault(item.getId(), 0))
+                .doOnNext(itemsMap ->
+                        log.info("Cart items with counts retrieved: {} items", itemsMap.size())
+                )
+                .doOnError(error ->
+                        log.error("Failed to get cart items with counts: {}", error.getMessage())
+                );
+    }
 
     private Flux<Item> getItemsByCart(Map<Long, Integer> cartItemsCount) {
         return itemRepository.findAllById(cartItemsCount.keySet());
     }
 
     private Mono<CartDto> buildCartDto(List<Item> items, Map<Long, Integer> cartItemsCount) {
-
+        log.trace("Building cart from {} items", items.size());
         return Flux.fromIterable(items)
                 .map(item -> {
                     Integer count = cartItemsCount.getOrDefault(item.getId(), 0);
@@ -102,8 +121,12 @@ public class CartServiceImpl implements CartService {
                     Long totalPrice = list.stream()
                             .mapToLong(Tuple2::getT2)
                             .sum();
+                    log.debug("Cart built: {} items, total {}", itemDtos.size(), totalPrice);
                     return new CartDto(itemDtos, totalPrice);
-                });
+                })
+                .doOnError(error ->
+                        log.error("Failed to build cart", error)
+                );
     }
 }
 
