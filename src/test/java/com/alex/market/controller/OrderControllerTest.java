@@ -17,6 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -50,6 +51,47 @@ class OrderControllerTest {
                 .value(html->{
                     assert html.contains("testTitle1 (1 шт.) 1000 руб.");
                 });
+    }
+    @Test
+    void findOrderWithItems_shouldReturnOneDtoAndViewSuccess(){
+        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
+        Mockito.when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
+
+        testClient.get()
+                .uri("/orders/" + VALID_ID)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html->{
+                    assert html.contains("Заказ №1");
+                });
+    }
+
+    @Test
+    void findOrderWithItems_shouldSetStatus404_whenNotFoundFail(){
 
     }
+
+
+  /*  @Test
+    void getOrder_shouldReturnOneDtoAndView() throws Exception {
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
+        when(orderService.getOrder(VALID_ID)).thenReturn(orderDto);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/orders/{id}",VALID_ID)
+                        .param("newOrder","false"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("order"))
+                .andExpect(view().name("order"));
+    }
+    @Test
+    void getOrder_shouldSetStatus404_whenNotFoundFail() throws Exception {
+        doThrow(OrderNotFoundException.class).when(orderService).getOrder(INVALID_ID);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/orders/{id}",INVALID_ID)
+                        .param("newOrder","false"))
+                .andExpect(status().isNotFound());
+    }*/
 }
