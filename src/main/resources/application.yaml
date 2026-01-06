@@ -31,10 +31,16 @@ market:
     maxSize: 5242880
     dir: /home/alexlakers/my-market
 
-
 logging:
   level:
     root: WARN
     com.alex.market: INFO
+    com.alex.market.service: DEBUG
+    com.alex.market.repository: INFO
+    org.springframework.r2dbc: WARN
+    org.springframework.transaction: INFO
   file:
     name: ${MARKET_DIR:/home/alexlakers/my-market}/market.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
