@@ -16,6 +16,7 @@ import com.alex.market.search.SearchDto;
 import com.alex.market.service.CartService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ItemServiceImpl implements ItemService {
 
     private final static Integer CONTENT_GROUP_SIZE = 3;
@@ -41,6 +43,13 @@ public class ItemServiceImpl implements ItemService {
 
 
     public Mono<PageItemsDto> getItemsPage(SearchDto searchDto) {
+        log.info("Getting page with items: pageNumber={}, pageSize={}, sortColumn={}, search={}, cartItemsCount={}",
+                searchDto.pageNumber(),
+                searchDto.pageSize(),
+                searchDto.sortColumn(),
+                searchDto.search(),
+                searchDto.cartItemsCount());
+
         Pageable pageable = PageRequest.of(
                 searchDto.pageNumber() - 1,
                 searchDto.pageSize(),
@@ -53,31 +62,46 @@ public class ItemServiceImpl implements ItemService {
 
                     List<List<ItemDto>> groupItems = groupItems(itemDtoList, CONTENT_GROUP_SIZE);
                     return toPageItemsDto(searchDto, groupItems, pageable.hasPrevious(), page.hasNext());
-
-
-                });
+                }).doOnNext(result ->
+                        log.info("Successful return page of items: {} groups", result.items().size())
+                )
+                .doOnError(error ->
+                        log.error("Error during handing error: {}", error.getMessage(), error)
+                );
     }
 
     @Override
     @Transactional
     public Mono<ItemDto> createItem(ItemCreateDto itemCreateDto) {
+        log.info("Creating item with: title={}, price={}",
+                itemCreateDto.title(),
+                itemCreateDto.price());
 
         return itemRepository.existsByTitle(itemCreateDto.title())
                 .flatMap(exists -> {
                     if (exists) {
+                        log.warn("Title already exists: {}", itemCreateDto.title());
                         return Mono.error(new TitleAlreadyExistsException(itemCreateDto.title()));
                     }
                     return itemRepository.save(toItem(itemCreateDto));
                 })
-                .map(savedItem -> itemMapper.toDto(savedItem, new HashMap<>()));
-
+                .map(savedItem -> {
+                    log.info("Successfully created item with id: {}", savedItem.getId());
+                    return itemMapper.toDto(savedItem, new HashMap<>());
+                });
     }
 
     @Override
     public Mono<ItemDto> getItemByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap) {
+        log.info("Get item by id: {}, cart size: {}", id,
+                cartCountMap != null ? cartCountMap.size() : 0);
+
         return itemRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
-                .map(it -> itemMapper.toDto(it, cartCountMap));
+                .map(it -> {
+                    log.debug("Found item: {}", it.getTitle());
+                    return itemMapper.toDto(it, cartCountMap);
+                });
     }
 
     private List<List<ItemDto>> groupItems(List<ItemDto> content, Integer groupSize) {
@@ -102,14 +126,32 @@ public class ItemServiceImpl implements ItemService {
     public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
         Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
         Long itemId = cartChangeDto.itemId();
+
+        log.info("Change cart count for item with id: {}, operation: {}",
+                itemId, cartChangeDto.action());
+
         return itemRepository.findById(cartChangeDto.itemId())
-                .switchIfEmpty(Mono.error(new ItemNotFoundException(itemId)))
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.warn("Item with id: {} not found for cart update", itemId);
+                    return Mono.error(new ItemNotFoundException(itemId));
+                }))
                 .flatMap(item ->
                         cartService.changeItemCount(cartChangeDto)
                                 .map(newCount -> {
                                     cart.put(itemId, newCount);
+
+                                    log.info("Cart updated: item={}, new count={}", itemId, newCount);
+
                                     return itemMapper.toDto(item, cart);
-                                }));
+                                }))
+                .doOnError(error -> {
+                    if (error instanceof ItemNotFoundException) {
+                        log.warn("Cannot update cart: item with id {} not found", itemId);
+                    } else {
+                        log.error("Cart update failed for item with id{}: {}",
+                                itemId, error.getMessage());
+                    }
+                });
 
     }
 
