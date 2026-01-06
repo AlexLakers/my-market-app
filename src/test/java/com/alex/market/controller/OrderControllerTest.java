@@ -3,6 +3,7 @@ package com.alex.market.controller;
 import com.alex.market.config.ConfigProperties;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
+import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.service.ItemService;
 import com.alex.market.service.OrderService;
@@ -71,27 +72,17 @@ class OrderControllerTest {
 
     @Test
     void findOrderWithItems_shouldSetStatus404_whenNotFoundFail(){
+        Mockito.when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
 
+        testClient.get()
+                .uri("/orders/" + INVALID_ID)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectHeader().contentType(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html->{
+                    assert html.contains("404");
+                });
     }
 
-
-  /*  @Test
-    void getOrder_shouldReturnOneDtoAndView() throws Exception {
-        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        when(orderService.getOrder(VALID_ID)).thenReturn(orderDto);
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/orders/{id}",VALID_ID)
-                        .param("newOrder","false"))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeExists("order"))
-                .andExpect(view().name("order"));
-    }
-    @Test
-    void getOrder_shouldSetStatus404_whenNotFoundFail() throws Exception {
-        doThrow(OrderNotFoundException.class).when(orderService).getOrder(INVALID_ID);
-
-        mockMvc.perform(MockMvcRequestBuilders.get("/orders/{id}",INVALID_ID)
-                        .param("newOrder","false"))
-                .andExpect(status().isNotFound());
-    }*/
 }
