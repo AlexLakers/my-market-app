@@ -4,7 +4,9 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.mapper.ItemMapper;
+import com.alex.market.model.Item;
 import com.alex.market.model.Order;
+import com.alex.market.model.OrderItem;
 import com.alex.market.repository.OrderItemRepository;
 import com.alex.market.repository.OrderRepository;
 import com.alex.market.repository.projection.OrderItemsDetails;
@@ -31,17 +33,17 @@ import static org.mockito.Mockito.when;
 class OrderServiceTest {
     private final Long VALID_ID = 1L;
     private final Long INVALID_ID = 1000000L;
+
     @Autowired
     private OrderService orderService;
     @Autowired
     private OrderItemRepository orderItemRepository;
     @Autowired
     private ItemMapper itemMapper;
-
-    /* @Autowired
-     private OrderMapper orderMapper;*/
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    private CartService cartService;
 
     private Map<Long, Integer> cartItemsCount;
     private ItemDto itemDto;
@@ -89,45 +91,20 @@ class OrderServiceTest {
         Assertions.assertThatExceptionOfType(OrderNotFoundException.class)
                 .isThrownBy(() -> orderService.findOrderWithItems(INVALID_ID).block());
     }
-@Test
-void createOrder_shouldCreateOrderAndReturnOrderDtoSuccess(){
 
-}
+    @Test
+    void createOrder_shouldCreateOrderAndReturnSavedOrderId() {
+        Item item = Item.builder().id(VALID_ID).price(1000L).title("title").description("descr").build();
+        Order expectedOrder = Order.builder().id(VALID_ID).build();
+        List<OrderItem> listOrderItem = List.of(OrderItem.builder().itemId(VALID_ID).orderId(VALID_ID).count(2).historyPrice(1000L).build());
+        when(cartService.getItemsCartWithCounts(cartItemsCount)).thenReturn(Mono.just(Map.of(item, 2)));
+        when(orderItemRepository.saveAll(Mockito.anyCollection())).thenReturn(Flux.fromIterable(listOrderItem));
+        when(orderRepository.save(Mockito.any(Order.class))).thenReturn(Mono.just(expectedOrder));
 
-/*    @Test
-    void createOrder_shouldCreateOrderAndReturnOrderDtoSuccess() {
-        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
-        when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
-        when(orderRepository.save(any(Order.class))).thenReturn(new Order());
+        Long actualSavedOrderId = orderService.createOrder(cartItemsCount).block();
 
-        OrderDto actualDto=orderService.createOrder(cartItemsCount);
-
-        assertThat(actualDto).isNotNull().isEqualTo(orderDto);
-
-    }*/
-   /* public Mono<OrderDto> createOrder(Map<Long, Integer> cartItemsCounts) {
-        return cartService.getItemsCartWithCounts(cartItemsCounts)
-                .flatMap(itemsCount -> {
-
-                    Long totalSum = itemsCount.entrySet().stream()
-                            .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
-
-                    Order order = new Order();
-                    order.setTotalSum(totalSum);
-                    return orderRepository.save(order)
-                            .flatMap(savedOrder -> {
-                                List<OrderItem> orderItems = itemsCount.entrySet().stream()
-                                        .map(entry -> createOrderItem(entry, savedOrder.getId()))
-                                        .collect(Collectors.toList());
-
-                                return orderItemRepository.saveAll(orderItems)
-                                        .collectList()
-                                        .map(savedOrderItems -> orderMapper.toDto(savedOrder, savedOrderItems, itemsCount.keySet().stream().toList()))
-                                        .doOnSuccess(dto -> log.info("Order created: {}", dto.id()))
-                                        .doOnError(error -> log.error("Failed to create order", error));
-                            });
-                });
-    }*/
+        Assertions.assertThat(actualSavedOrderId).isEqualTo(expectedOrder.getId());
+    }
 
     @TestConfiguration
     static class OrderServiceTestContextConfiguration {
