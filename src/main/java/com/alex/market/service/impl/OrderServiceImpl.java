@@ -5,25 +5,70 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.mapper.ItemMapper;
+import com.alex.market.mapper.OrderMapper;
+import com.alex.market.model.Item;
 import com.alex.market.model.Order;
+import com.alex.market.model.OrderItem;
 import com.alex.market.repository.OrderItemRepository;
 import com.alex.market.repository.OrderRepository;
 import com.alex.market.repository.projection.OrderItemsDetails;
+import com.alex.market.service.CartService;
 import com.alex.market.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ItemMapper itemMapper;
+    private final CartService cartService;
+    private final OrderMapper orderMapper;
+
+    public Mono<OrderDto> createOrder(Map<Long, Integer> cartItemsCounts) {
+        return cartService.getItemsCartWithCounts(cartItemsCounts)
+                .flatMap(itemsCount -> {
+
+                    Long totalSum = itemsCount.entrySet().stream()
+                            .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
+
+                    Order order = new Order();
+                    order.setTotalSum(totalSum);
+                    return orderRepository.save(order)
+                            .flatMap(savedOrder -> {
+                                List<OrderItem> orderItems = itemsCount.entrySet().stream()
+                                        .map(entry -> createOrderItem(entry, savedOrder.getId()))
+                                        .collect(Collectors.toList());
+
+                                return orderItemRepository.saveAll(orderItems)
+                                        .collectList()
+                                        .map(savedOrderItems -> orderMapper.toDto(savedOrder, savedOrderItems, itemsCount.keySet().stream().toList()))
+                                        .doOnSuccess(dto -> log.info("Order created: {}", dto.id()))
+                                        .doOnError(error -> log.error("Failed to create order", error));
+                            });
+                });
+    }
+
+    private OrderItem createOrderItem(Map.Entry<Item, Integer> entry, Long orderId) {
+        return OrderItem.builder()
+                .orderId(orderId)
+                .itemId(entry.getKey().getId())
+                .historyPrice(entry.getKey().getPrice())
+                .count(entry.getValue())
+                .build();
+    }
+
+
 
     @Override
     public Flux<OrderDto> findAllOrders() {
