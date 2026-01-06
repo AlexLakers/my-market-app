@@ -5,7 +5,6 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.mapper.ItemMapper;
-import com.alex.market.mapper.OrderMapper;
 import com.alex.market.model.Item;
 import com.alex.market.model.Order;
 import com.alex.market.model.OrderItem;
@@ -22,7 +21,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,9 +31,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final ItemMapper itemMapper;
     private final CartService cartService;
-    private final OrderMapper orderMapper;
 
-    public Mono<OrderDto> createOrder(Map<Long, Integer> cartItemsCounts) {
+    public Mono<Long> createOrder(Map<Long, Integer> cartItemsCounts) {
         return cartService.getItemsCartWithCounts(cartItemsCounts)
                 .flatMap(itemsCount -> {
 
@@ -51,9 +48,8 @@ public class OrderServiceImpl implements OrderService {
                                         .collect(Collectors.toList());
 
                                 return orderItemRepository.saveAll(orderItems)
-                                        .collectList()
-                                        .map(savedOrderItems -> orderMapper.toDto(savedOrder, savedOrderItems, itemsCount.keySet().stream().toList()))
-                                        .doOnSuccess(dto -> log.info("Order created: {}", dto.id()))
+                                        .then(Mono.just(savedOrder.getId()))
+                                        .doOnSuccess(idd -> log.info("Order created: {}", idd))
                                         .doOnError(error -> log.error("Failed to create order", error));
                             });
                 });
@@ -67,7 +63,6 @@ public class OrderServiceImpl implements OrderService {
                 .count(entry.getValue())
                 .build();
     }
-
 
 
     @Override

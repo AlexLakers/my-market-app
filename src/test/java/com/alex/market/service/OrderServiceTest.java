@@ -4,8 +4,6 @@ import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
 import com.alex.market.mapper.ItemMapper;
-import com.alex.market.mapper.ItemMapperImpl;
-import com.alex.market.model.Item;
 import com.alex.market.model.Order;
 import com.alex.market.repository.OrderItemRepository;
 import com.alex.market.repository.OrderRepository;
@@ -27,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @SpringJUnitConfig
@@ -90,14 +87,58 @@ class OrderServiceTest {
         when(orderItemRepository.findItemsWithDetailsByOrderId(INVALID_ID)).thenReturn(Flux.fromIterable(List.of(orderItemsDetails)));
 
         Assertions.assertThatExceptionOfType(OrderNotFoundException.class)
-                .isThrownBy(()-> orderService.findOrderWithItems(INVALID_ID).block());
+                .isThrownBy(() -> orderService.findOrderWithItems(INVALID_ID).block());
     }
+@Test
+void createOrder_shouldCreateOrderAndReturnOrderDtoSuccess(){
+
+}
+
+/*    @Test
+    void createOrder_shouldCreateOrderAndReturnOrderDtoSuccess() {
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
+        when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
+        when(orderRepository.save(any(Order.class))).thenReturn(new Order());
+
+        OrderDto actualDto=orderService.createOrder(cartItemsCount);
+
+        assertThat(actualDto).isNotNull().isEqualTo(orderDto);
+
+    }*/
+   /* public Mono<OrderDto> createOrder(Map<Long, Integer> cartItemsCounts) {
+        return cartService.getItemsCartWithCounts(cartItemsCounts)
+                .flatMap(itemsCount -> {
+
+                    Long totalSum = itemsCount.entrySet().stream()
+                            .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
+
+                    Order order = new Order();
+                    order.setTotalSum(totalSum);
+                    return orderRepository.save(order)
+                            .flatMap(savedOrder -> {
+                                List<OrderItem> orderItems = itemsCount.entrySet().stream()
+                                        .map(entry -> createOrderItem(entry, savedOrder.getId()))
+                                        .collect(Collectors.toList());
+
+                                return orderItemRepository.saveAll(orderItems)
+                                        .collectList()
+                                        .map(savedOrderItems -> orderMapper.toDto(savedOrder, savedOrderItems, itemsCount.keySet().stream().toList()))
+                                        .doOnSuccess(dto -> log.info("Order created: {}", dto.id()))
+                                        .doOnError(error -> log.error("Failed to create order", error));
+                            });
+                });
+    }*/
 
     @TestConfiguration
     static class OrderServiceTestContextConfiguration {
         @Bean
-        public OrderService orderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, ItemMapper itemMapper) {
-            return new OrderServiceImpl(orderRepository, orderItemRepository, itemMapper);
+        public CartService cartService() {
+            return Mockito.mock(CartService.class);
+        }
+
+        @Bean
+        public OrderService orderService(OrderRepository orderRepository, OrderItemRepository orderItemRepository, ItemMapper itemMapper, CartService cartService) {
+            return new OrderServiceImpl(orderRepository, orderItemRepository, itemMapper, cartService);
         }
 
         @Bean
