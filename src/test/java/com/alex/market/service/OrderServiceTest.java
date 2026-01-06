@@ -52,9 +52,10 @@ class OrderServiceTest {
     @Test
     void getAllOrders_shouldReturnOrderDtoListSuccess() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto),1000L);
+        List<OrderItemsDetails> listDetails=List.of(new OrderItemsDetails(VALID_ID,itemDto.title(),itemDto.description(),itemDto.imgPath(),itemDto.price(),itemDto.count()));
        // when(orderMapper.toDto(any(Order.class))).thenReturn(orderDto);
         when(orderRepository.findAll()).thenReturn(Flux.fromIterable(List.of(Order.builder().id(VALID_ID).totalSum(1000L).build())));
-        when(orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID)).thenReturn(Flux.fromIterable(List.of(new OrderItemsDetails(VALID_ID,itemDto.title(),itemDto.description(),itemDto.imgPath(),itemDto.price(),itemDto.count()))));
+        when(orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID)).thenReturn(Flux.fromIterable(listDetails));
 
         List<OrderDto> actualDto=orderService.findAllOrders().collectList().block();
 
