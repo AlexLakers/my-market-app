@@ -42,9 +42,9 @@ public class OrderController {
     public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
 
         return orderService.createOrder(cart)
-                .map(orderDto -> {
+                .map(id -> {
                     cart.clear();
-                    return "redirect:/orders/" + orderDto.id() + "?newOrder=true";
+                    return "redirect:/orders/" + id + "?newOrder=true";
                 });
 
     }
