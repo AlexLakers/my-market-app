@@ -1,6 +1,9 @@
 package com.alex.market.controller;
 
 import com.alex.market.config.ConfigProperties;
+import com.alex.market.dto.input.CartChangeDto;
+import com.alex.market.dto.input.InputFormItem;
+import com.alex.market.dto.input.InputFormItems;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
@@ -9,12 +12,14 @@ import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.filter.CartWebFilter;
+import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
+import jakarta.validation.Valid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -51,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @WebFluxTest(ItemController.class)
 @Import({ConfigProperties.class, GlobalExceptionHandler.class})
@@ -87,7 +93,7 @@ class ItemControllerTest {
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel() {
         PageItemsDto expectedDto = new PageItemsDto(List.of(List.of(new ItemDto(VALID_ID, "test1-title", "test1-desc", "/img/path", 1000L, 3))), SortColumn.PRICE.name(), "test1", new PageDto(3, 1, false, false));
 
-        Mockito.when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
+        when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
 
         testClient
                 .get()
@@ -112,7 +118,7 @@ class ItemControllerTest {
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel_whenParamsNotGiven() {
         PageItemsDto expectedDto = new PageItemsDto(List.of(List.of(new ItemDto(VALID_ID, "test1-title", "test1-desc", "/img/path", 1000L, 3))), SortColumn.PRICE.name(), "test1", new PageDto(3, 1, false, false));
 
-        Mockito.when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
+        when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
 
         testClient
                 .get()
@@ -133,7 +139,7 @@ class ItemControllerTest {
     void createItem_shouldSet201StatusAndReturnHtmlPageNewImageSuccess() {
         ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
         ItemDto itemDto = new ItemDto(VALID_ID, givenDto.title(), givenDto.description(), null, givenDto.price(), 1);
-        Mockito.when(itemService.createItem(givenDto)).thenReturn(Mono.just(itemDto));
+        when(itemService.createItem(givenDto)).thenReturn(Mono.just(itemDto));
 
         testClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -183,7 +189,7 @@ class ItemControllerTest {
                 .contentType(MediaType.IMAGE_JPEG);
 
 
-        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong())).thenReturn(Mono.empty());
+        when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong())).thenReturn(Mono.empty());
 
         testClient.post()
                 .uri("/items/{id}/images/new", VALID_ID)
@@ -203,7 +209,7 @@ class ItemControllerTest {
                 .contentType(MediaType.IMAGE_JPEG);
 
 
-        Mockito.when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong()))
+        when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong()))
                 .thenReturn(Mono.error(() -> new ItemNotFoundException(INVALID_ID)));
 
         testClient.post()
@@ -221,7 +227,7 @@ class ItemControllerTest {
     @Test
     void getItemByIdWithCartCount_shouldSet200AndReturnItemByIdSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "title", "description", null, 1000L, 1);
-        Mockito.when(itemService.getItemByIdWithCartCount(VALID_ID,cartItemsCount)).thenReturn(Mono.just(itemDto));
+        when(itemService.getItemByIdWithCartCount(VALID_ID,cartItemsCount)).thenReturn(Mono.just(itemDto));
 
         testClient.get()
                 .uri("/items/{id}", VALID_ID)
@@ -237,7 +243,7 @@ class ItemControllerTest {
 
     @Test
     void getItemByIdWithCartCount_shouldSet404AndReturnErrorPageFail() {
-        Mockito.when(itemService.getItemByIdWithCartCount(INVALID_ID,cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
+        when(itemService.getItemByIdWithCartCount(INVALID_ID,cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
 
         testClient.get()
                 .uri("/items/{id}", INVALID_ID)
@@ -250,8 +256,93 @@ class ItemControllerTest {
                 });
     }
 
+    @Test
+    void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs(){
+        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
+        when(itemService.changeCartItemCount(givenDto)).thenReturn(Mono.just(expectedDto));
+        testClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/items")
+                        .queryParam("id", givenDto.itemId())
+                        .queryParam("action", givenDto.action())
+                        .queryParam("search", "test")
+                        .queryParam("sort",SortColumn.NO.name())
+                        .queryParam("pageNumber", 1)
+                        .queryParam("pageSize", 3)
+                        .build())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/items?search=test&sort=NO&pageSize=3&pageNumber=1")
+                .expectBody(String.class);
+    }
+
+ /*   @Test
+    void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() throws Exception {
+        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
+        when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
+
+        mockMvc.perform(post("/items")
+                        .param("id", VALID_ID.toString())
+                        .param("action", CartAction.PLUS.name())
+                        .param("search", "test")
+                        .param("sort", SortColumn.NO.name())
+                        .param("pageNumber", "1")
+                        .param("pageSize", "3")
+                        .sessionAttr("cart", cartItemsCount))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/items?search=test&sort=NO&pageSize=3&pageNumber=1"))
+                .andExpect(view().name("redirect:/items"));
+
+    }
+    @Test
+    public void changeCartItemCountForItemPage() throws Exception {
+        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
+        when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
+
+        mockMvc.perform(post("/items/{itemId}",VALID_ID)
+                        .sessionAttr("cart", cartItemsCount)
+                        .param("action", CartAction.PLUS.name()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("item"))
+                .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
+                .andExpect(model().attributeExists("item"));
+    }*/
+
+
+  /*  @PostMapping("/items")
+    public Mono<String> changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
+                                                        @SessionAttribute Map<Long, Integer> cart
+    ) {
+
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .thenReturn("redirect:/items?search=" + params.search()
+                            + "&sort=" + params.sort()
+                            + "&pageSize=" + params.pageSize()
+                            + "&pageNumber=" + params.pageNumber());
+
+    }
+
+
+    @PostMapping("/items/{id}")
+    public Mono<Rendering> changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
+                                                          @SessionAttribute Map<Long, Integer> cart
+    ) {
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .map(itemDto -> Rendering
+                        .view("item")
+                        .modelAttribute("item", itemDto)
+                        .status(HttpStatus.OK)
+                        .build());
+
+    }*/
+
+
+
     void mockCartWebFilter() {
-        Mockito.when(cartWebFilter.filter(Mockito.any(ServerWebExchange.class), Mockito.any(WebFilterChain.class)))
+        when(cartWebFilter.filter(Mockito.any(ServerWebExchange.class), Mockito.any(WebFilterChain.class)))
                 .thenAnswer(invocation -> {
                     ServerWebExchange exchange = invocation.getArgument(0);
                     WebFilterChain chain = invocation.getArgument(1);
