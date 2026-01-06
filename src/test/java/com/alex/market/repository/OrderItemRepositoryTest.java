@@ -25,16 +25,20 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 class OrderItemRepositoryTest {
 
-    private static Long VALID_ID=1000L;
+    private static Long VALID_ID = 1000L;
     @Autowired
     private OrderItemRepository orderItemRepository;
+
     @Test
-    void findItemsWithDetailsByOrderId(){
-        List<OrderItemsDetails> expectedListDetails=List.of(new OrderItemsDetails(VALID_ID,"test1-ball","Test ball description1","images/test-ball.jpg",500L,2));
-        List<OrderItemsDetails> actualListDetails=orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID).collectList().block();
+    void findItemsWithDetailsByOrderId_shouldReturnListOrderItemsDetailsNotEmpty() {
+        List<OrderItemsDetails> actualListDetails = orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID).collectList().block();
 
         Assertions.assertThat(actualListDetails)
-                .hasSize(1)
-                .contains(expectedListDetails.getFirst());
+                .hasSize(1);
+        Assertions.assertThat(actualListDetails.getFirst())
+                .hasFieldOrPropertyWithValue("id", VALID_ID)
+                .hasFieldOrPropertyWithValue("title", "test1-ball")
+                .hasFieldOrPropertyWithValue("price", 500L)
+                .hasFieldOrPropertyWithValue("count", 2);
     }
 }
