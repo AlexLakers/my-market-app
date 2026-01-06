@@ -1,7 +1,8 @@
-package com.alex.market.repository;
+package com.alex.market.integration.repository;
 
 import com.alex.market.config.PostgresTestconteinerConfig;
 import com.alex.market.model.Item;
+import com.alex.market.repository.ItemRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,14 +18,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @DataR2dbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
 @ImportTestcontainers({PostgresTestconteinerConfig.class})
 @ActiveProfiles("test")
-class ItemRepositoryTest {
+class ItemRepositoryIT {
 
     private static final Long MIN_PRICE = 500L;
 

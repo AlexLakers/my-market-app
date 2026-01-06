@@ -1,6 +1,7 @@
-package com.alex.market.controller;
+package com.alex.market.integration.controller;
 
 import com.alex.market.config.ConfigProperties;
+import com.alex.market.controller.CartController;
 import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.output.CartDto;
 import com.alex.market.dto.output.ItemDto;
@@ -24,11 +25,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 @WebFluxTest(CartController.class)
 @Import(ConfigProperties.class)
-class CartControllerTest {
+class CartControllerWebFluxIT {
     private Map<Long, Integer> cartItemsCount;
 
     private static final Long VALID_ID = 1L;

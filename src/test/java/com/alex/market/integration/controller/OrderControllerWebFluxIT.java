@@ -1,13 +1,10 @@
-package com.alex.market.controller;
+package com.alex.market.integration.controller;
 
 import com.alex.market.config.ConfigProperties;
+import com.alex.market.controller.OrderController;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.OrderDto;
 import com.alex.market.exception.OrderNotFoundException;
-import com.alex.market.exception.handler.GlobalExceptionHandler;
-import com.alex.market.model.Order;
-import com.alex.market.repository.projection.OrderItemsDetails;
-import com.alex.market.service.ItemService;
 import com.alex.market.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -19,21 +16,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @WebFluxTest(OrderController.class)
 @Import(ConfigProperties.class)
 @ActiveProfiles("test")
-class OrderControllerTest {
+class OrderControllerWebFluxIT {
     private static final Long VALID_ID = 1L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
 

@@ -1,7 +1,7 @@
-package com.alex.market.repository;
+package com.alex.market.integration.repository;
 
 import com.alex.market.config.PostgresTestconteinerConfig;
-import com.alex.market.model.Order;
+import com.alex.market.repository.OrderItemRepository;
 import com.alex.market.repository.projection.OrderItemsDetails;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -11,19 +11,15 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import reactor.core.publisher.Flux;
 
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
 @DataR2dbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
 @ImportTestcontainers({PostgresTestconteinerConfig.class})
 @ActiveProfiles("test")
-class OrderItemRepositoryTest {
+class OrderItemRepositoryIT {
 
     private static Long VALID_ID = 1000L;
     @Autowired

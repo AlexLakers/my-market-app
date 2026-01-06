@@ -1,25 +1,21 @@
-package com.alex.market.controller;
+package com.alex.market.integration.controller;
 
 import com.alex.market.config.ConfigProperties;
+import com.alex.market.controller.ItemController;
 import com.alex.market.dto.input.CartChangeDto;
-import com.alex.market.dto.input.InputFormItem;
-import com.alex.market.dto.input.InputFormItems;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
 import com.alex.market.dto.output.PageDto;
-import com.alex.market.exception.ImageStorageException;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.exception.handler.GlobalExceptionHandler;
 import com.alex.market.filter.CartWebFilter;
 import com.alex.market.model.CartAction;
-import com.alex.market.model.Item;
 import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.search.SortColumn;
 import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
-import jakarta.validation.Valid;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,41 +23,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.reactive.server.MockServerConfigurer;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.test.web.reactive.server.WebTestClientConfigurer;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.result.view.Rendering;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
-import org.springframework.web.server.adapter.WebHttpHandlerBuilder;
-import org.springframework.web.util.UriBuilder;
 import reactor.core.publisher.Mono;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(ItemController.class)
 @Import({ConfigProperties.class, GlobalExceptionHandler.class})
 @ActiveProfiles("test")
-class ItemControllerTest {
+class ItemControllerWebFluxIT {
 
     @Autowired
     private WebTestClient testClient;
