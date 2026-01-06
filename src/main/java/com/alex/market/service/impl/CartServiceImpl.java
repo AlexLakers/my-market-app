@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -75,8 +76,10 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public Mono<Map<Item, Integer>> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount) {
-        return null;
+        return getItemsByCart(cartItemsCount)
+                .collectMap(item -> item, item -> cartItemsCount.getOrDefault(item.getId(), 0));
     }
+
 
     private Flux<Item> getItemsByCart(Map<Long, Integer> cartItemsCount) {
         return itemRepository.findAllById(cartItemsCount.keySet());
