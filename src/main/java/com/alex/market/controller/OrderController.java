@@ -4,11 +4,11 @@ import com.alex.market.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -37,13 +37,17 @@ public class OrderController {
                         .status(HttpStatus.OK)
                         .build());
     }
-   /* @GetMapping("/orders/{id}")
-    public String getOrders(@PathVariable Long id,
-                            @RequestParam(defaultValue = "false") boolean newOrder,
-                            Model model) {
-        model.addAttribute("order", orderService.getOrder(id));
-        model.addAttribute("newOrder", newOrder);
-        return "order";
-    }*/
+
+    @PostMapping("/buy")
+    public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
+
+        return orderService.createOrder(cart)
+                .map(orderDto -> {
+                    cart.clear();
+                    return "redirect:/orders/" + orderDto.id() + "?newOrder=true";
+                });
+
+    }
+
 
 }
