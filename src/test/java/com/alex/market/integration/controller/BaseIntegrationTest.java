@@ -16,13 +16,5 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @ImportTestcontainers(PostgresTestconteinerConfig .class)
 @ActiveProfiles("test")
-/*@Sql(scripts = {
-       *//* "/sql/cleanup.sql",*//*
-        "/sql/data-test.sql"
-}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)*/
-/*@Sql(scripts = {
-        "/sql/cleanup.sql",
-        "/sql/data-test.sql"
-}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)*/
 public class BaseIntegrationTest {
 }

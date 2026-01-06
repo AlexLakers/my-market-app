@@ -21,6 +21,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+import static org.mockito.Mockito.*;
+
 @WebFluxTest(OrderController.class)
 @Import(ConfigProperties.class)
 @ActiveProfiles("test")
@@ -38,7 +40,7 @@ class OrderControllerWebFluxIT {
     void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        Mockito.when(orderService.findAllOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
+        when(orderService.findAllOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
 
         testClient.get()
                 .uri("/orders")
@@ -55,7 +57,7 @@ class OrderControllerWebFluxIT {
     void getOrderById_shouldReturnOneDtoAndViewSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        Mockito.when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
+        when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
 
         testClient.get()
                 .uri("/orders/" + VALID_ID)
@@ -70,7 +72,7 @@ class OrderControllerWebFluxIT {
 
     @Test
     void getOrderById_shouldSetStatus404_whenNotFoundFail() {
-        Mockito.when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
+        when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
 
         testClient.get()
                 .uri("/orders/" + INVALID_ID)
@@ -85,7 +87,7 @@ class OrderControllerWebFluxIT {
 
     @Test
     void createOrder_shouldSet201AndRedirectToOrderPage() {
-        Mockito.when(orderService.createOrder(Mockito.anyMap())).thenReturn(Mono.just(VALID_ID));
+        when(orderService.createOrder(anyMap())).thenReturn(Mono.just(VALID_ID));
 
         testClient.post()
                 .uri("/buy")
@@ -95,15 +97,5 @@ class OrderControllerWebFluxIT {
                 .expectBody(String.class);
 
     }
-
-  /*  @PostMapping("/buy")
-    public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
-
-        return orderService.createOrder(cart)
-                .map(id -> {
-                    cart.clear();
-                    return "redirect:/orders/" + id + "?newOrder=true";
-                });
-    }*/
 
 }

@@ -90,7 +90,5 @@ class OrderControllerIT extends BaseIntegrationTest{
                 .value(html -> {
                     assert html.contains("Заказ №"+newSavedId);
                 });
-
     }
-
 }

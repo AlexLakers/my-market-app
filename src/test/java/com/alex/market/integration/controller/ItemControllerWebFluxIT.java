@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(ItemController.class)
@@ -75,7 +76,7 @@ class ItemControllerWebFluxIT {
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel() {
         PageItemsDto expectedDto = new PageItemsDto(List.of(List.of(new ItemDto(VALID_ID, "test1-title", "test1-desc", "/img/path", 1000L, 3))), SortColumn.PRICE.name(), "test1", new PageDto(3, 1, false, false));
 
-        when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
+        when(itemService.getItemsPage(any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
 
         testClient
                 .get()
@@ -100,7 +101,7 @@ class ItemControllerWebFluxIT {
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel_whenParamsNotGiven() {
         PageItemsDto expectedDto = new PageItemsDto(List.of(List.of(new ItemDto(VALID_ID, "test1-title", "test1-desc", "/img/path", 1000L, 3))), SortColumn.PRICE.name(), "test1", new PageDto(3, 1, false, false));
 
-        when(itemService.getItemsPage(Mockito.any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
+        when(itemService.getItemsPage(any(SearchDto.class))).thenReturn(Mono.just(expectedDto));
 
         testClient
                 .get()
@@ -144,7 +145,7 @@ class ItemControllerWebFluxIT {
     @Test
     void createItem_shouldSet400StatusAndReturnHtmlPage400Fail() {
         ItemCreateDto givenDto = new ItemCreateDto("already-title", "description", 1000L);
-        Mockito.doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
+        doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
 
         testClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -171,7 +172,7 @@ class ItemControllerWebFluxIT {
                 .contentType(MediaType.IMAGE_JPEG);
 
 
-        when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong())).thenReturn(Mono.empty());
+        when(imageService.updateImageByItemId(any(FilePart.class), anyLong())).thenReturn(Mono.empty());
 
         testClient.post()
                 .uri("/items/{id}/images/new", VALID_ID)
@@ -191,7 +192,7 @@ class ItemControllerWebFluxIT {
                 .contentType(MediaType.IMAGE_JPEG);
 
 
-        when(imageService.updateImageByItemId(Mockito.any(FilePart.class), Mockito.anyLong()))
+        when(imageService.updateImageByItemId(any(FilePart.class), anyLong()))
                 .thenReturn(Mono.error(() -> new ItemNotFoundException(INVALID_ID)));
 
         testClient.post()
@@ -278,55 +279,8 @@ class ItemControllerWebFluxIT {
                 });
     }
 
-
-
-/*
-    @Test
-    public void changeCartItemCountForItemPage() throws Exception {
-        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
-        when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
-
-        mockMvc.perform(post("/items/{itemId}",VALID_ID)
-                        .sessionAttr("cart", cartItemsCount)
-                        .param("action", CartAction.PLUS.name()))
-                .andExpect(status().isOk())
-                .andExpect(view().name("item"))
-                .andExpect(content().contentType(MediaType.valueOf("text/html;charset=UTF-8")))
-                .andExpect(model().attributeExists("item"));
-    }*/
-
-
-  /*  @PostMapping("/items")
-    public Mono<String> changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
-                                                        @SessionAttribute Map<Long, Integer> cart
-    ) {
-
-        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
-                .thenReturn("redirect:/items?search=" + params.search()
-                            + "&sort=" + params.sort()
-                            + "&pageSize=" + params.pageSize()
-                            + "&pageNumber=" + params.pageNumber());
-
-    }
-
-
-    @PostMapping("/items/{id}")
-    public Mono<Rendering> changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
-                                                          @SessionAttribute Map<Long, Integer> cart
-    ) {
-        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
-                .map(itemDto -> Rendering
-                        .view("item")
-                        .modelAttribute("item", itemDto)
-                        .status(HttpStatus.OK)
-                        .build());
-
-    }*/
-
-
     void mockCartWebFilter() {
-        when(cartWebFilter.filter(Mockito.any(ServerWebExchange.class), Mockito.any(WebFilterChain.class)))
+        when(cartWebFilter.filter(any(ServerWebExchange.class), any(WebFilterChain.class)))
                 .thenAnswer(invocation -> {
                     ServerWebExchange exchange = invocation.getArgument(0);
                     WebFilterChain chain = invocation.getArgument(1);

@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.Mockito.*;
+
 @WebFluxTest(CartController.class)
 @Import(ConfigProperties.class)
 class CartControllerWebFluxIT {
@@ -51,8 +53,8 @@ class CartControllerWebFluxIT {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L);
-        Mockito.when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(itemDto.count()));
-        Mockito.when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(Mono.just(expectedDto));
+        when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(itemDto.count()));
+        when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(Mono.just(expectedDto));
 
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -66,7 +68,7 @@ class CartControllerWebFluxIT {
 
     }
     void mockCartWebFilter() {
-        Mockito.when(cartWebFilter.filter(Mockito.any(ServerWebExchange.class), Mockito.any(WebFilterChain.class)))
+        when(cartWebFilter.filter(any(ServerWebExchange.class), any(WebFilterChain.class)))
                 .thenAnswer(invocation -> {
                     ServerWebExchange exchange = invocation.getArgument(0);
                     WebFilterChain chain = invocation.getArgument(1);
@@ -75,21 +77,4 @@ class CartControllerWebFluxIT {
                             .then(chain.filter(exchange));
                 });
     }
-  /*  @Test
-    void changeCartItemCountForCartPage_shouldRedirectToGetItems() throws Exception {
-        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
-        CartDto expectedDto = new CartDto(List.of(itemDto), 2000L);
-        when(cartService.changeItemCount(givenDto)).thenReturn(itemDto.count());
-        when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(expectedDto);
-
-        mockMvc.perform(post("/cart/items")
-                        .param("id", String.valueOf(VALID_ID))
-                        .param("action", CartAction.PLUS.name())
-                        .sessionAttr("cart", cartItemsCount))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/cart/items"));
-
-    }
-}*/
 }
