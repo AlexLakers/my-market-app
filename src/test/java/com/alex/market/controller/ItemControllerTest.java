@@ -227,7 +227,7 @@ class ItemControllerTest {
     @Test
     void getItemByIdWithCartCount_shouldSet200AndReturnItemByIdSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "title", "description", null, 1000L, 1);
-        when(itemService.getItemByIdWithCartCount(VALID_ID,cartItemsCount)).thenReturn(Mono.just(itemDto));
+        when(itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount)).thenReturn(Mono.just(itemDto));
 
         testClient.get()
                 .uri("/items/{id}", VALID_ID)
@@ -243,7 +243,7 @@ class ItemControllerTest {
 
     @Test
     void getItemByIdWithCartCount_shouldSet404AndReturnErrorPageFail() {
-        when(itemService.getItemByIdWithCartCount(INVALID_ID,cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
+        when(itemService.getItemByIdWithCartCount(INVALID_ID, cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
 
         testClient.get()
                 .uri("/items/{id}", INVALID_ID)
@@ -251,15 +251,15 @@ class ItemControllerTest {
                 .expectStatus().isNotFound()
                 .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_HTML)
                 .expectBody(String.class)
-                .value(html->{
+                .value(html -> {
                     assert html.contains("404");
                 });
     }
 
     @Test
-    void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs(){
+    void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
         when(itemService.changeCartItemCount(givenDto)).thenReturn(Mono.just(expectedDto));
         testClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -267,7 +267,7 @@ class ItemControllerTest {
                         .queryParam("id", givenDto.itemId())
                         .queryParam("action", givenDto.action())
                         .queryParam("search", "test")
-                        .queryParam("sort",SortColumn.NO.name())
+                        .queryParam("sort", SortColumn.NO.name())
                         .queryParam("pageNumber", 1)
                         .queryParam("pageSize", 3)
                         .build())
@@ -277,25 +277,28 @@ class ItemControllerTest {
                 .expectBody(String.class);
     }
 
- /*   @Test
-    void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() throws Exception {
+    @Test
+    void changeCartItemCountForItemPage_shouldSet200AndReturnItemPageWithModel() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID)+1);
-        when(itemService.changeCartItemCount(givenDto)).thenReturn(expectedDto);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
+        when(itemService.changeCartItemCount(givenDto)).thenReturn(Mono.just(expectedDto));
 
-        mockMvc.perform(post("/items")
-                        .param("id", VALID_ID.toString())
-                        .param("action", CartAction.PLUS.name())
-                        .param("search", "test")
-                        .param("sort", SortColumn.NO.name())
-                        .param("pageNumber", "1")
-                        .param("pageSize", "3")
-                        .sessionAttr("cart", cartItemsCount))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/items?search=test&sort=NO&pageSize=3&pageNumber=1"))
-                .andExpect(view().name("redirect:/items"));
-
+        testClient.post()
+                .uri("/items/{itemId}?action=" + CartAction.PLUS.name(), VALID_ID)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.TEXT_HTML)
+                .expectBody(String.class)
+                .value(html -> {
+                    assert html.contains("testTitle1");
+                    assert html.contains("testDesc1");
+                    assert html.contains("<span>3</span>");
+                });
     }
+
+
+
+/*
     @Test
     public void changeCartItemCountForItemPage() throws Exception {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
@@ -338,7 +341,6 @@ class ItemControllerTest {
                         .build());
 
     }*/
-
 
 
     void mockCartWebFilter() {
