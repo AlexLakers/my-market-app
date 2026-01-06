@@ -40,14 +40,10 @@ public class OrderController {
 
     @PostMapping("/buy")
     public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
-
         return orderService.createOrder(cart)
                 .map(id -> {
                     cart.clear();
                     return "redirect:/orders/" + id + "?newOrder=true";
                 });
-
     }
-
-
 }

@@ -31,6 +31,5 @@ public class Item {
 
     @Column("price")
     private Long price;
-
 }
 

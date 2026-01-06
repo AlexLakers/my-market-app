@@ -36,6 +36,5 @@ public class CartController {
     ) {
         return cartService.changeItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .thenReturn("redirect:/cart/items");
-
     }
 }

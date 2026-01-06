@@ -61,7 +61,6 @@ public class ItemController {
     public Mono<Rendering> createItem(@Validated @ModelAttribute ItemCreateDto item,
                                       BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
-
             return Mono.just(Rendering.view("newItem")
                     .modelAttribute("errors", bindingResult.getAllErrors())
                     .modelAttribute("title", item.title())
@@ -75,7 +74,6 @@ public class ItemController {
                         .modelAttribute("item", savedItemDto)
                         .status(HttpStatus.CREATED)
                         .build());
-
     }
 
     @GetMapping("/items/images/new")
@@ -108,9 +106,7 @@ public class ItemController {
                             + "&sort=" + params.sort()
                             + "&pageSize=" + params.pageSize()
                             + "&pageNumber=" + params.pageNumber());
-
     }
-
 
     @PostMapping("/items/{id}")
     public Mono<Rendering> changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
@@ -122,7 +118,5 @@ public class ItemController {
                         .modelAttribute("item", itemDto)
                         .status(HttpStatus.OK)
                         .build());
-
     }
-
 }

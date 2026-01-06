@@ -34,5 +34,4 @@ public class OrderItem {
 
     @Column("count")
     private Integer count;
-
 }

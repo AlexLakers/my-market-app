@@ -27,5 +27,4 @@ public class Order {
 
     @Column("total_sum")
     private Long totalSum;
-
 }

@@ -21,14 +21,6 @@ public interface ItemMapper {
         return toDto(item, cart.getOrDefault(item.getId(), 0));
     }
 
-/*    @Mapping(target = "id", source = "item.id")
-    @Mapping(target = "title", source = "item.title")
-    @Mapping(target = "description", source = "item.description")
-    @Mapping(target = "imgPath", source = "item.imgPath")
-    @Mapping(target = "price", source = "orderItem.historyPrice")
-    @Mapping(target = "count", source = "orderItem.count")
-    ItemDto toDtoFromOrderItem(OrderItem orderItem, Item item);*/
-
     ItemDto toDtoFromOrderItemDetails(OrderItemsDetails orderItemsDetails);
 }
 
