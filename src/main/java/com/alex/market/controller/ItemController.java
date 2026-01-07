@@ -100,6 +100,9 @@ public class ItemController {
     @GetMapping("/items/{id}")
     public Mono<Rendering> getItem(@PathVariable Long id,
                                    @SessionAttribute("cart") Map<Long, Integer> cart) {
+
+        log.info("---endpoint 'getItem' with id: {} and cart: {} from session was started---", id, cart);
+
         return itemService.getItemByIdWithCartCount(id, cart)
                 .map(dto -> Rendering.view("item")
                         .modelAttribute("item", dto)

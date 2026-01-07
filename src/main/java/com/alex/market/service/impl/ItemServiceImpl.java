@@ -73,14 +73,13 @@ public class ItemServiceImpl implements ItemService {
     @Override
     @Transactional
     public Mono<ItemDto> createItem(ItemCreateDto itemCreateDto) {
-        log.info("Creating item with: title={}, price={}",
-                itemCreateDto.title(),
-                itemCreateDto.price());
+        log.info("Creating item with: title={}, price={}", itemCreateDto.title(), itemCreateDto.price());
 
         return itemRepository.existsByTitle(itemCreateDto.title())
                 .flatMap(exists -> {
                     if (exists) {
                         log.warn("Title already exists: {}", itemCreateDto.title());
+
                         return Mono.error(new TitleAlreadyExistsException(itemCreateDto.title()));
                     }
                     return itemRepository.save(toItem(itemCreateDto));
@@ -126,12 +125,11 @@ public class ItemServiceImpl implements ItemService {
     public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
         Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
         Long itemId = cartChangeDto.itemId();
-
-        log.info("Change cart count for item with id: {}, operation: {}",
-                itemId, cartChangeDto.action());
+        log.info("Change cart count for item with id: {}, operation: {}", itemId, cartChangeDto.action());
 
         return itemRepository.findById(cartChangeDto.itemId())
                 .switchIfEmpty(Mono.defer(() -> {
+
                     log.warn("Item with id: {} not found for cart update", itemId);
                     return Mono.error(new ItemNotFoundException(itemId));
                 }))
@@ -141,15 +139,13 @@ public class ItemServiceImpl implements ItemService {
                                     cart.put(itemId, newCount);
 
                                     log.info("Cart updated: item={}, new count={}", itemId, newCount);
-
                                     return itemMapper.toDto(item, cart);
                                 }))
                 .doOnError(error -> {
                     if (error instanceof ItemNotFoundException) {
                         log.warn("Cannot update cart: item with id {} not found", itemId);
                     } else {
-                        log.error("Cart update failed for item with id{}: {}",
-                                itemId, error.getMessage());
+                        log.error("Cart update failed for item with id{}: {}", itemId, error.getMessage());
                     }
                 });
 

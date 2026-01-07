@@ -32,6 +32,7 @@ public class ImageServiceImpl implements ImageService {
     @Override
     public Mono<Void> updateImageByItemId(FilePart file, Long id) {
         log.info("Update image for item with id: {}", id);
+
         return itemRepository.existsById(id)
                 .filter(Boolean.TRUE::equals)
                 .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
@@ -63,7 +64,7 @@ public class ImageServiceImpl implements ImageService {
                         }
 
                         int readable = dataBuffer.readableByteCount();
-                        log.trace("File size: {} bytes", readable);
+                        log.debug("File size: {} bytes", readable);
 
                         if (readable <= 0) {
                             log.warn("Empty file for item with id: {}", id);

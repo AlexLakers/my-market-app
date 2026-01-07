@@ -63,7 +63,7 @@ public class CartServiceImpl implements CartService {
                         log.error("Failed to change item count", error));
     }
 
-    public Integer deleteItem(Long itemId, Map<Long, Integer> cartItemsCount) {
+    private Integer deleteItem(Long itemId, Map<Long, Integer> cartItemsCount) {
         cartItemsCount.remove(itemId);
         return 0;
     }
@@ -80,9 +80,12 @@ public class CartServiceImpl implements CartService {
         return getItemsByCart(cartItemsCount)
                 .collectList()
                 .flatMap(items -> buildCartDto(items, cartItemsCount))
-                .doOnSuccess(cart -> log.debug("Cart loaded with {} items, total: {}",
-                        cart.items().size(), cart.total()))
-                .doOnError(error -> log.error("Failed to load cart", error));
+                .doOnSuccess(cart ->
+                        log.debug("Cart loaded with {} items, total: {}", cart.items().size(), cart.total())
+                )
+                .doOnError(error ->
+                        log.error("Failed to load cart", error)
+                );
     }
 
     @Override
@@ -105,7 +108,8 @@ public class CartServiceImpl implements CartService {
     }
 
     private Mono<CartDto> buildCartDto(List<Item> items, Map<Long, Integer> cartItemsCount) {
-        log.trace("Building cart from {} items", items.size());
+        log.debug("Building cart from {} items", items.size());
+
         return Flux.fromIterable(items)
                 .map(item -> {
                     Integer count = cartItemsCount.getOrDefault(item.getId(), 0);
@@ -121,6 +125,7 @@ public class CartServiceImpl implements CartService {
                     Long totalPrice = list.stream()
                             .mapToLong(Tuple2::getT2)
                             .sum();
+
                     log.debug("Cart built: {} items, total {}", itemDtos.size(), totalPrice);
                     return new CartDto(itemDtos, totalPrice);
                 })
