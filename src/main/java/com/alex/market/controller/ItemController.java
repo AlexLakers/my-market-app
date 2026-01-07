@@ -111,7 +111,7 @@ public class ItemController {
     public Mono<String> changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
                                                         @SessionAttribute Map<Long, Integer> cart
     ) {
-        log.info("---endpoint 'changeCartItemCountForItemsPage' with input params: {},{} was started---", params, cart);
+        log.info("---endpoint 'changeCartItemCountForItemsPage' with input form params: {},{} was started---", params, cart);
 
         return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .thenReturn("redirect:/items?search=" + params.search()

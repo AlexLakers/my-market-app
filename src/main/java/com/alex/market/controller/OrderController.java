@@ -2,6 +2,7 @@ package com.alex.market.controller;
 
 import com.alex.market.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
+@Slf4j
 public class OrderController {
     private final OrderService orderService;
 
@@ -29,6 +31,8 @@ public class OrderController {
     @GetMapping("/orders/{id}")
     public Mono<Rendering> getOrderById(@PathVariable("id") Long id,
                                         @RequestParam(defaultValue = "false") boolean newOrder) {
+        log.info("---endpoint 'getOrderById' with input params: newOrder:{} and id:{} was started---", newOrder, id);
+
         return orderService.findOrderWithItems(id)
                 .map(orderDto -> Rendering
                         .view("order")
@@ -40,6 +44,8 @@ public class OrderController {
 
     @PostMapping("/buy")
     public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
+        log.info("---endpoint 'createOrder' with cart:{} from session was started---", cart);
+
         return orderService.createOrder(cart)
                 .map(id -> {
                     cart.clear();

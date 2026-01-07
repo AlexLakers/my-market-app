@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.result.view.Rendering;
@@ -25,12 +26,13 @@ public class CartController {
 
     @GetMapping("/items")
     public Mono<Rendering> getItemsCartWithTotal(@SessionAttribute Map<Long, Integer> cart) {
-        log.info("---endpoint 'getItemsCartWithTotal' with args:{} was started---", cart);
+        log.info("---endpoint 'getItemsCartWithTotal' with cart:{} from session was started---", cart);
 
         return cartService.getItemsCartWithTotal(cart)
                 .map(cartDto -> Rendering.view("cart")
                         .modelAttribute("items", cartDto.items())
                         .modelAttribute("total", cartDto.total())
+                        .status(HttpStatus.OK)
                         .build());
     }
 
@@ -38,7 +40,8 @@ public class CartController {
     public Mono<String> changeCartItemCountForCartPage(@Valid @ModelAttribute InputFormCart params,
                                                        @SessionAttribute @NotNull Map<Long, Integer> cart
     ) {
-        log.info("---endpoint 'changeCartItemCountForCartPage' with args:{},{} was started---", cart, params);
+        log.info("---endpoint 'changeCartItemCountForCartPage' with input form params:{} and cart from session:{} was started---",
+                params, cart);
 
         return cartService.changeItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .thenReturn("redirect:/cart/items");
