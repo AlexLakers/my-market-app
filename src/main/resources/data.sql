@@ -1,7 +1,7 @@
 INSERT INTO items ( title, description, img_path,  price) VALUES
-                                                                 ( 'test1-ball', 'Test ball description1', 'images/test-ball.jpg', 500),
-                                                                 ( 'test1-car', 'Test car description1', 'images/test-car.jpg', 50000),
-                                                                 ( 'test-computer', 'Test computer description', 'images/test-computer.jpg', 15000);
+                                                                 ( 'ball', 'The ball description', 'images/ball.jpg', 500),
+                                                                 ( 'car', 'The car description', 'images/car.jpg', 50000),
+                                                                 ( 'computer', 'The computer description', 'images/computer.jpg', 15000);
 
 
 INSERT INTO orders ( total_sum) VALUES

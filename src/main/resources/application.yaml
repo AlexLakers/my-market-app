@@ -13,9 +13,9 @@ spring:
     banner-mode: off
 
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/skeleton_repository
-    username: postgres
-    password: postgres
+    url: r2dbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     pool:
       enabled: true
       initial-size: 10
