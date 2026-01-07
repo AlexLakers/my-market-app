@@ -12,7 +12,7 @@
 	<artifactId>my-market-app</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>my-market-app</name>
-	<description>My Market Application using WebMvc</description>
+	<description>My Market Application using R2DBC and WebFlux</description>
 	<url> https://github.com/AlexLakers/my-market-app </url>
 	<licenses>
 		<license/>
