@@ -7,6 +7,7 @@ import com.alex.market.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.result.view.Rendering;
@@ -17,12 +18,15 @@ import java.util.Map;
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/cart")
+@Slf4j
 public class CartController {
 
     private final CartService cartService;
 
     @GetMapping("/items")
-    public Mono<Rendering> getItems(@SessionAttribute Map<Long, Integer> cart) {
+    public Mono<Rendering> getItemsCartWithTotal(@SessionAttribute Map<Long, Integer> cart) {
+        log.info("---endpoint 'getItemsCartWithTotal' with args:{} was started---", cart);
+
         return cartService.getItemsCartWithTotal(cart)
                 .map(cartDto -> Rendering.view("cart")
                         .modelAttribute("items", cartDto.items())
@@ -34,6 +38,8 @@ public class CartController {
     public Mono<String> changeCartItemCountForCartPage(@Valid @ModelAttribute InputFormCart params,
                                                        @SessionAttribute @NotNull Map<Long, Integer> cart
     ) {
+        log.info("---endpoint 'changeCartItemCountForCartPage' with args:{},{} was started---", cart, params);
+
         return cartService.changeItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .thenReturn("redirect:/cart/items");
     }
