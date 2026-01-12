@@ -73,7 +73,7 @@ class OrderControllerIT extends BaseIntegrationTest{
 
     @Test
     void createOrder_shouldSet201AndRedirectToOrderPage() {
-        final long newSavedId=1003L;
+        final long newSavedId=1L;
         testClient.post()
                 .uri("/buy")
                 .exchange()

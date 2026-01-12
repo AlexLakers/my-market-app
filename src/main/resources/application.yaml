@@ -18,13 +18,13 @@ spring:
     default-schema: public
     user: ${spring.r2dbc.username}
     password: ${spring.r2dbc.password}
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:skeleton_repository}
     driver-class-name: org.postgresql.Driver
 
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:skeleton_repository}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
     pool:
       enabled: true
       initial-size: 10

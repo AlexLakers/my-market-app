@@ -1,9 +1,11 @@
 package com.alex.market.integration.repository;
 
 import com.alex.market.config.PostgresTestconteinerConfig;
+import com.alex.market.integration.TestDataLoader;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -15,6 +17,7 @@ import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -29,6 +32,15 @@ class ItemRepositoryIT {
 
     @Autowired
     private ItemRepository itemRepository;
+
+
+    @Autowired
+    private DatabaseClient databaseClient;
+
+    @BeforeEach
+    void setup() {
+        TestDataLoader.loadTestData(databaseClient);
+    }
 
     @ParameterizedTest
     @CsvSource({
