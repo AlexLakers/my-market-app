@@ -11,28 +11,34 @@ import com.alex.market.mapper.ItemMapperImpl;
 import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
-import com.alex.market.search.*;
+import com.alex.market.search.PageItemsDto;
+import com.alex.market.search.SearchDto;
+import com.alex.market.search.SortColumn;
 import com.alex.market.service.impl.ItemServiceImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EmptySource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringJUnitConfig
 class ItemServiceTest {
@@ -58,27 +64,26 @@ class ItemServiceTest {
     }
 
     @Test
-    void getItemsPage_shouldReturnItemsPage() {
+    void getItemsPage_shouldReturnItems() {
         SearchDto givenDto = new SearchDto("test", SortColumn.PRICE, 1, 3, cartItemsCount);
         Page<Item> pageItems = getExpectedPageItems(givenDto.pageNumber(), givenDto.pageSize(), 4);
         PageItemsDto pageItemsDto = getExpectedPageItemsDto(givenDto.search(), givenDto.sortColumn().name(), pageItems.getNumber(), pageItems.getSize(), pageItems.hasPrevious(), pageItems.hasNext());
-        when(itemRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(pageItems);
+        when(itemRepository.findAll(Mockito.anyString(), Mockito.any(Pageable.class))).thenReturn(Mono.just(pageItems));
 
-        PageItemsDto actual = itemService.getItemsPage(givenDto);
+        PageItemsDto actual = itemService.getItemsPage(givenDto).block();
 
-        assertThat(actual.items())
+        Assertions.assertThat(actual.items())
                 .isNotNull()
                 .hasSize(pageItemsDto.items().size());
-        assertThat(actual.items().getFirst())
+        Assertions.assertThat(actual.items().getFirst())
                 .isNotNull()
                 .hasSize(3)
                 .contains(pageItemsDto.items().getFirst().getFirst());
-        assertThat(actual.items().getLast())
+        Assertions.assertThat(actual.items().getLast())
                 .isNotNull()
                 .hasSize(3)
                 .contains(pageItemsDto.items().getLast().getLast());
     }
-
 
     static PageItemsDto getExpectedPageItemsDto(String search, String sort, Integer page, Integer size, boolean hasPrev, boolean hasNext) {
         ItemDto itemDto1 = new ItemDto(1L, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
@@ -96,72 +101,73 @@ class ItemServiceTest {
 
     static Page<Item> getExpectedPageItems(int pageNumber, int pageSize, long total) {
         List<Item> content = Arrays.asList(
-                new Item(1L, "testTitle1", "testDesc1", "testImagePath1", 1000L, null),
-                new Item(2L, "testTitle2", "testDesc2", "testImagePath2", 2000L, null),
-                new Item(3L, "testTitle3", "testDesc3", "testImagePath3", 3000L, null),
-                new Item(4L, "testTitle4", "testDesc4", "testImagePath4", 4000L, null)
+                new Item(1L, "testTitle1", "testDesc1", "testImagePath1", 1000L),
+                new Item(2L, "testTitle2", "testDesc2", "testImagePath2", 2000L),
+                new Item(3L, "testTitle3", "testDesc3", "testImagePath3", 3000L),
+                new Item(4L, "testTitle4", "testDesc4", "testImagePath4", 4000L)
         );
 
         return new PageImpl<Item>(content, PageRequest.of(pageNumber, pageSize), total);
     }
 
     @Test
-    void findByIdWithCartCount_shouldReturnDtoSuccess() {
-        Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, null);
-        when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
+    void createItem_shouldReturnSavedItemWithIdSuccess() {
+        Mockito.when(itemRepository.existsByTitle("test-title")).thenReturn(Mono.just(Boolean.FALSE));
+        Mockito.when(itemRepository.save(Mockito.any(Item.class))).thenReturn(Mono.just(Item.builder().id(VALID_ID).build()));
+        ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
+        ItemDto actualSavedItemDto = itemService.createItem(givenDto).block();
 
-        ItemDto actualDto = itemService.findByIdWithCartCount(VALID_ID, cartItemsCount);
-
-        assertThat(actualDto)
-                .isNotNull()
-                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID)
-                .hasFieldOrPropertyWithValue(Item.Fields.title, expectedItem.getTitle())
-                .hasFieldOrPropertyWithValue("count", cartItemsCount.get(VALID_ID));
+        Assertions.assertThat(actualSavedItemDto).isNotNull()
+                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID);
     }
 
     @Test
-    void findByIdWithCartCount_shouldThrowItemNotFoundException_whenIdNotFoundFail() {
-        when(itemRepository.findById(INVALID_ID)).thenReturn(Optional.empty());
+    void createItem_shouldThrowTitleAlreadyExistsException_whenTitleAlreadyExistsFail() {
+        Mockito.when(itemRepository.existsByTitle("already-title")).thenReturn(Mono.just(Boolean.TRUE));
+        ItemCreateDto givenDto = new ItemCreateDto("already-title", "description", 1000L);
 
-        assertThatExceptionOfType(ItemNotFoundException.class)
-                .isThrownBy(() -> itemService.findByIdWithCartCount(INVALID_ID, cartItemsCount));
+        Assertions.assertThatExceptionOfType(TitleAlreadyExistsException.class)
+                .isThrownBy(() -> itemService.createItem(givenDto).block());
+    }
+
+    @Test
+    void getItemByIdWithCart_shouldReturnDtoWithIdSuccess() {
+        Item item = Item.builder().id(VALID_ID).build();
+        when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(item));
+
+        ItemDto actualDto = itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount).block();
+        Assertions.assertThat(actualDto).isNotNull()
+                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID);
 
     }
 
-    @ParameterizedTest
-    @EmptySource
-    void findByIdWithCartCount_shouldReturnDtoWithSetDefaultCartCount_whenCartMapNull(Map<Long, Integer> cartItemsCountNotValid) {
-        when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(new Item()));
+    @Test
+    void getItemByIdWithCartCount_shouldThrowItemNotFoundException_whenItemNotFoundFail() {
+        when(itemRepository.findById(INVALID_ID)).thenReturn(Mono.empty());
 
-        ItemDto actualDto = itemService.findByIdWithCartCount(VALID_ID, cartItemsCountNotValid);
-
-        assertThat(actualDto)
-                .isNotNull()
-                .hasFieldOrPropertyWithValue("count", 0);
-
+        Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
+                .isThrownBy(() -> itemService.getItemByIdWithCartCount(INVALID_ID, cartItemsCount).block());
     }
 
     @Test
     void changeCartItemCount_shouldCallCartServiceMethodSuccess() {
-        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID+1));
-        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
+        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID + 1));
+        Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
-        when(itemRepository.findById(VALID_ID)).thenReturn(Optional.of(expectedItem));
-        when(cartService.changeItemCount(any(CartChangeDto.class))).thenReturn(2);
 
-        ItemDto actualDto=itemService.changeCartItemCount(givenDto);
+        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(expectedItem));
+        Mockito.when(cartService.changeItemCount(Mockito.any(CartChangeDto.class))).thenReturn(Mono.just(2));
+
+        ItemDto actualDto = itemService.changeCartItemCount(givenDto).block();
 
         assertThat(actualDto)
                 .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID)
                 .hasFieldOrPropertyWithValue("count", expectedDto.count());
     }
 
-        @TestConfiguration
+
+    @TestConfiguration
     static class TestConfig {
-        @Bean
-        public CartService cartService() {
-            return mock(CartService.class);
-        }
 
         @Bean
         public ItemRepository itemRepository() {
@@ -169,15 +175,19 @@ class ItemServiceTest {
         }
 
         @Bean
-        public ItemService itemService(ItemRepository itemRepository) {
-            return new ItemServiceImpl(itemRepository, cartService(),itemMapper());
+        public CartService cartService() {
+            return mock(CartService.class);
         }
+
+        @Bean
+        public ItemService itemService(ItemRepository itemRepository, ItemMapper itemMapper, CartService cartService) {
+            return new ItemServiceImpl(itemRepository, itemMapper, cartService);
+        }
+
         @Bean
         public ItemMapper itemMapper() {
             return new ItemMapperImpl();
         }
 
     }
-
-
 }

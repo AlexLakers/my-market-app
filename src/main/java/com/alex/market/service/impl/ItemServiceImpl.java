@@ -1,6 +1,6 @@
 package com.alex.market.service.impl;
 
-import com.alex.market.aop.annotation.Loggable;
+
 import com.alex.market.dto.input.CartChangeDto;
 import com.alex.market.dto.input.ItemCreateDto;
 import com.alex.market.dto.output.ItemDto;
@@ -9,88 +9,100 @@ import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.exception.TitleAlreadyExistsException;
 import com.alex.market.mapper.ItemMapper;
 import com.alex.market.model.Item;
-import com.alex.market.search.ItemSort;
-import com.alex.market.search.ItemSpecification;
-import com.alex.market.search.PageItemsDto;
 import com.alex.market.repository.ItemRepository;
+import com.alex.market.search.ItemSort;
+import com.alex.market.search.PageItemsDto;
 import com.alex.market.search.SearchDto;
 import com.alex.market.service.CartService;
 import com.alex.market.service.ItemService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Slf4j
 public class ItemServiceImpl implements ItemService {
 
     private final static Integer CONTENT_GROUP_SIZE = 3;
 
     private final ItemRepository itemRepository;
-    private final CartService cartService;
     private final ItemMapper itemMapper;
+    private final CartService cartService;
 
-    @Loggable
-    public PageItemsDto getItemsPage(SearchDto searchDto) {
 
-        Specification specItems = ItemSpecification.getSpecByTitleOrDescription(searchDto.search());
+    public Mono<PageItemsDto> getItemsPage(SearchDto searchDto) {
+        log.info("Getting page with items: pageNumber={}, pageSize={}, sortColumn={}, search={}, cartItemsCount={}",
+                searchDto.pageNumber(),
+                searchDto.pageSize(),
+                searchDto.sortColumn(),
+                searchDto.search(),
+                searchDto.cartItemsCount());
+
         Pageable pageable = PageRequest.of(
                 searchDto.pageNumber() - 1,
                 searchDto.pageSize(),
                 ItemSort.getOrderByPriceOrTitle(searchDto.sortColumn()));
 
-        Page<Item> pageItems = itemRepository.findAll(specItems, pageable);
+        return itemRepository.findAll(searchDto.search(), pageable)
+                .map(page -> {
+                    List<ItemDto> itemDtoList = page.getContent().stream()
+                            .map(item -> itemMapper.toDto(item, searchDto.cartItemsCount())).collect(Collectors.toList());
 
-        List<ItemDto> itemsDto = pageItems.getContent().stream()
-                .map(it -> itemMapper.toDto(it, searchDto.cartItemsCount()))
-                .collect(Collectors.toList());
-
-        List<List<ItemDto>> groupItems = groupItems(itemsDto, CONTENT_GROUP_SIZE);
-
-        return toPageItemsDto(searchDto, groupItems, pageable.hasPrevious(), pageItems.hasNext());
-
+                    List<List<ItemDto>> groupItems = groupItems(itemDtoList, CONTENT_GROUP_SIZE);
+                    return toPageItemsDto(searchDto, groupItems, pageable.hasPrevious(), page.hasNext());
+                }).doOnNext(result ->
+                        log.info("Successful return page of items: {} groups", result.items().size())
+                )
+                .doOnError(error ->
+                        log.error("Error during handing error: {}", error.getMessage(), error)
+                );
     }
 
     @Override
-    public ItemDto findByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap) {
+    @Transactional
+    public Mono<ItemDto> createItem(ItemCreateDto itemCreateDto) {
+        log.info("Creating item with: title={}, price={}", itemCreateDto.title(), itemCreateDto.price());
+
+        return itemRepository.existsByTitle(itemCreateDto.title())
+                .flatMap(exists -> {
+                    if (exists) {
+                        log.warn("Title already exists: {}", itemCreateDto.title());
+
+                        return Mono.error(new TitleAlreadyExistsException(itemCreateDto.title()));
+                    }
+                    return itemRepository.save(toItem(itemCreateDto));
+                })
+                .map(savedItem -> {
+                    log.info("Successfully created item with id: {}", savedItem.getId());
+                    return itemMapper.toDto(savedItem, new HashMap<>());
+                });
+    }
+
+    @Override
+    public Mono<ItemDto> getItemByIdWithCartCount(Long id, Map<Long, Integer> cartCountMap) {
+        log.info("Get item by id: {}, cart size: {}", id,
+                cartCountMap != null ? cartCountMap.size() : 0);
 
         return itemRepository.findById(id)
-                .map(it -> itemMapper.toDto(it, cartCountMap))
-                .orElseThrow(() -> new ItemNotFoundException(id));
-
-    }
-
-    @Override
-    public ItemDto changeCartItemCount(CartChangeDto cartChangeDto) {
-        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
-        Long itemId = cartChangeDto.itemId();
-        return itemRepository.findById(cartChangeDto.itemId())
+                .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
                 .map(it -> {
-                    cart.put(itemId, cartService.changeItemCount(cartChangeDto));
-                    return itemMapper.toDto(it, cart);
-                })
-                .orElseThrow(() -> new ItemNotFoundException(itemId));
+                    log.debug("Found item: {}", it.getTitle());
+                    return itemMapper.toDto(it, cartCountMap);
+                });
     }
 
-
-    private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
-        return new PageItemsDto(
-                groupItems,
-                searchDto.search(),
-                searchDto.sortColumn().name(),
-                new PageDto(searchDto.pageSize(), searchDto.pageNumber(), hasPrev, hasNext));
-    }
-
-    @Loggable
     private List<List<ItemDto>> groupItems(List<ItemDto> content, Integer groupSize) {
         List<ItemDto> groupItems = content != null ? content : new ArrayList<>();
 
@@ -110,15 +122,41 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    @Transactional
-    @Loggable
-    public ItemDto createItem(ItemCreateDto itemCreateDto) {
+    public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
+        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
+        Long itemId = cartChangeDto.itemId();
+        log.info("Change cart count for item with id: {}, operation: {}", itemId, cartChangeDto.action());
 
-        if (itemRepository.existsByTitle(itemCreateDto.title())) {
-            throw new TitleAlreadyExistsException(itemCreateDto.title());
-        }
-        Item savedItem = itemRepository.save(toItem(itemCreateDto/*, imagePath*/));
-        return itemMapper.toDto(savedItem, new HashMap<>());
+        return itemRepository.findById(cartChangeDto.itemId())
+                .switchIfEmpty(Mono.defer(() -> {
+
+                    log.warn("Item with id: {} not found for cart update", itemId);
+                    return Mono.error(new ItemNotFoundException(itemId));
+                }))
+                .flatMap(item ->
+                        cartService.changeItemCount(cartChangeDto)
+                                .map(newCount -> {
+                                    cart.put(itemId, newCount);
+
+                                    log.info("Cart updated: item={}, new count={}", itemId, newCount);
+                                    return itemMapper.toDto(item, cart);
+                                }))
+                .doOnError(error -> {
+                    if (error instanceof ItemNotFoundException) {
+                        log.warn("Cannot update cart: item with id {} not found", itemId);
+                    } else {
+                        log.error("Cart update failed for item with id{}: {}", itemId, error.getMessage());
+                    }
+                });
+
+    }
+
+    private PageItemsDto toPageItemsDto(SearchDto searchDto, List<List<ItemDto>> groupItems, boolean hasPrev, boolean hasNext) {
+        return new PageItemsDto(
+                groupItems,
+                searchDto.search(),
+                searchDto.sortColumn().name(),
+                new PageDto(searchDto.pageSize(), searchDto.pageNumber(), hasPrev, hasNext));
     }
 
     private Item toItem(ItemCreateDto dto) {

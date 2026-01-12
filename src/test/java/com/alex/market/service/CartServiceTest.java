@@ -10,28 +10,30 @@ import com.alex.market.model.CartAction;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.service.impl.CartServiceImpl;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringJUnitConfig
 class CartServiceTest {
-
     private static final Long VALID_ID = 1L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
     Map<Long,Integer> cartItemsCount;
@@ -55,11 +57,11 @@ class CartServiceTest {
     @CsvSource({"PLUS, 3",
             "MINUS, 1",
     })
-    void changeItemCount_shouldReturnIncrementCountItemInCartSuccess(CartAction action,Integer expectedCount) {
+    void changeItemCount_shouldReturnIncrementCountItemInCartSuccess(CartAction action, Integer expectedCount) {
         CartChangeDto givenDto=new CartChangeDto(VALID_ID, action,cartItemsCount);
-        when(itemRepository.existsById(VALID_ID)).thenReturn(true);
+        when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
 
-        Integer actualCount=cartService.changeItemCount(givenDto);
+        Integer actualCount=cartService.changeItemCount(givenDto).block();
 
         assertThat(actualCount).isNotNull().isEqualTo(expectedCount);
     }
@@ -67,25 +69,28 @@ class CartServiceTest {
     @Test
     void changeItemCount_shouldThrowItemNotFoundException_whenItemIdNotExistsFail() {
         CartChangeDto givenDto=new CartChangeDto(INVALID_ID, CartAction.PLUS,cartItemsCount);
-        when(itemRepository.existsById(INVALID_ID)).thenReturn(false);
+        when(itemRepository.existsById(INVALID_ID)).thenReturn(Mono.just(false));
 
         assertThatExceptionOfType(ItemNotFoundException.class)
-                        .isThrownBy(()->cartService.changeItemCount(givenDto));
+                .isThrownBy(()->cartService.changeItemCount(givenDto).block());
     }
 
     @Test
-    void getItemsCartWithTotal_shouldReturnItemsCartSuccess() {
+    void getItemsCartWithTotal_shouldReturnCartDtoWithTotalCountSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
-        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L,null);
+        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
         CartDto expectedDto=new CartDto(List.of(itemDto),2000L);
-        when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(List.of(expectedItem));
+        when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(Flux.fromIterable(List.of(expectedItem)));
 
-        CartDto actualDto=cartService.getItemsCartWithTotal(cartItemsCount);
+        CartDto actualDto=cartService.getItemsCartWithTotal(cartItemsCount).block();
 
         assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
 
 
+    @Test
+    void getItemsCartWithCounts() {
+    }
 
     @TestConfiguration
     static class TestConfig {

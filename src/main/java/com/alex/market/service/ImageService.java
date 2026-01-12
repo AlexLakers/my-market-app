@@ -1,7 +1,8 @@
 package com.alex.market.service;
 
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.codec.multipart.FilePart;
+import reactor.core.publisher.Mono;
 
 public interface ImageService {
-    void updateImageByItemId(MultipartFile file, Long id);
+    Mono<Void> updateImageByItemId(FilePart file, Long id);
 }

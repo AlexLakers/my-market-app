@@ -33,12 +33,6 @@ public class GlobalExceptionHandler {
         return "error/404";
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public String handleMissingParams(MissingServletRequestParameterException ex) {
-        return "error/400";
-    }
-
     @ExceptionHandler(TitleAlreadyExistsException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleTitleAlreadyExistsException(TitleAlreadyExistsException ex, Model model) {

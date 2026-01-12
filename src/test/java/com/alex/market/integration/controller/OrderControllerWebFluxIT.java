@@ -21,19 +21,27 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+import static org.mockito.Mockito.*;
 
-class OrderControllerIT extends BaseIntegrationTest{
-    private static final Long VALID_ID = 1000L;
+@WebFluxTest(OrderController.class)
+@Import(ConfigProperties.class)
+@ActiveProfiles("test")
+class OrderControllerWebFluxIT {
+    private static final Long VALID_ID = 1L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
 
     @Autowired
     private WebTestClient testClient;
 
-    @Autowired
+    @MockitoBean(reset = MockReset.BEFORE)
     private OrderService orderService;
 
     @Test
     void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
+        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
+        when(orderService.findAllOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
+
         testClient.get()
                 .uri("/orders")
                 .exchange()
@@ -41,12 +49,16 @@ class OrderControllerIT extends BaseIntegrationTest{
                 .expectHeader().contentType(MediaType.TEXT_HTML)
                 .expectBody(String.class)
                 .value(html -> {
-                    assert html.contains("test1-ball (2 шт.) 1000 руб.");
+                    assert html.contains("testTitle1 (1 шт.) 1000 руб.");
                 });
     }
 
     @Test
     void getOrderById_shouldReturnOneDtoAndViewSuccess() {
+        ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
+        OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
+        when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
+
         testClient.get()
                 .uri("/orders/" + VALID_ID)
                 .exchange()
@@ -60,6 +72,8 @@ class OrderControllerIT extends BaseIntegrationTest{
 
     @Test
     void getOrderById_shouldSetStatus404_whenNotFoundFail() {
+        when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
+
         testClient.get()
                 .uri("/orders/" + INVALID_ID)
                 .exchange()
@@ -73,22 +87,15 @@ class OrderControllerIT extends BaseIntegrationTest{
 
     @Test
     void createOrder_shouldSet201AndRedirectToOrderPage() {
-        final long newSavedId=1L;
+        when(orderService.createOrder(anyMap())).thenReturn(Mono.just(VALID_ID));
+
         testClient.post()
                 .uri("/buy")
                 .exchange()
                 .expectStatus().is3xxRedirection()
-                .expectHeader().location("/orders/" + newSavedId + "?newOrder=true")
+                .expectHeader().location("/orders/" + VALID_ID + "?newOrder=true")
                 .expectBody(String.class);
 
-        testClient.get()
-                .uri("/orders/{id}", newSavedId)
-                .exchange()
-                .expectStatus().isOk()
-                .expectHeader().contentType(MediaType.TEXT_HTML)
-                .expectBody(String.class)
-                .value(html -> {
-                    assert html.contains("Заказ №"+newSavedId);
-                });
     }
+
 }

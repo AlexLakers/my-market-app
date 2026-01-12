@@ -1,47 +1,35 @@
 package com.alex.market.model;
 
-import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
-import org.hibernate.annotations.BatchSize;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Getter
 @Setter
-@ToString(exclude = "orderItems")
-@EqualsAndHashCode(of = "id")
+@ToString
+@EqualsAndHashCode
 @Builder
 @Table(name = "items")
 @FieldNameConstants
 public class Item {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "items_seq")
-    @SequenceGenerator(name = "items_seq", sequenceName = "items_sequence", allocationSize = 1)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 128)
+    @Column("title")
     private String title;
 
-    @Column(nullable = true, length = 512)
+    @Column("description")
     private String description;
 
-    @Column(nullable = false, length = 128)
+    @Column("img_path")
     private String imgPath;
 
-    @Column(nullable = false)
+    @Column("price")
     private Long price;
-
-    @Builder.Default
-    @OneToMany(mappedBy = "item")
-    @BatchSize(size = 50)
-    private List<OrderItem> orderItems = new ArrayList<>();
-
 }
 

@@ -12,105 +12,128 @@ import com.alex.market.service.ImageService;
 import com.alex.market.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.reactive.result.view.Rendering;
+import reactor.core.publisher.Mono;
 
+import javax.swing.*;
+import java.util.HashMap;
 import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
-@Validated
-//@RequestMapping(value = {"/", "/items"})
+@Slf4j
 public class ItemController {
     private final ItemService itemService;
     private final ImageService imageService;
 
     @GetMapping(value = {"/", "/items"})
-    public String getItems(@RequestParam(required = false) String search,
-                           @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
-                           @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
-                           @RequestParam(required = false, defaultValue = "10") Integer pageSize,
-                           @SessionAttribute Map<Long, Integer> cart,
-                           Model model) {
+    public Mono<Rendering> getItems(@RequestParam(required = false) String search,
+                                    @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
+                                    @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
+                                    @RequestParam(required = false, defaultValue = "10") Integer pageSize,
+                                    @SessionAttribute("cart") Map<Long, Integer> cart) {
+        log.info("---endpoint 'getItems' with input params: search={},sort={},cart={},pageNumber={},pageSize={} was started---",
+                search, sort, cart, pageNumber, pageSize);
 
-
-        PageItemsDto pageItemsDto = itemService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart));
-        model.addAttribute("items", pageItemsDto.items());
-        model.addAttribute("search", pageItemsDto.search());
-        model.addAttribute("sort", pageItemsDto.sort());
-        model.addAttribute("paging", pageItemsDto.pageDto());
-
-        return "items";
-    }
-
-    @GetMapping(value = "/items/{id}")
-    public String getItemById(@PathVariable Long id,
-                              @SessionAttribute Map<Long, Integer> cart,
-                              Model model) {
-        model.addAttribute("item", itemService.findByIdWithCartCount(id, cart));
-        return "item";
-    }
-
-    @PostMapping("/items")
-    public String changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
-                                                  @SessionAttribute Map<Long, Integer> cart,
-                                                  RedirectAttributes redirectAttributes
-
-    ) {
-        itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart));
-        redirectAttributes.addAttribute("search", params.search());
-        redirectAttributes.addAttribute("sort", params.sort());
-        redirectAttributes.addAttribute("pageSize", params.pageSize());
-        redirectAttributes.addAttribute("pageNumber", params.pageNumber());
-        return "redirect:/items";
-    }
-
-    @PostMapping("/items/{id}")
-    public String changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
-                                                 @SessionAttribute Map<Long, Integer> cart,
-                                                 Model model
-    ) {
-        model.addAttribute("item", itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart)));
-
-        return "item";
+        return itemService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart))
+                .map(pageItemsDto -> Rendering.view("items")
+                        .modelAttribute("items", pageItemsDto.items())
+                        .modelAttribute("search", pageItemsDto.search())
+                        .modelAttribute("sort", pageItemsDto.sort())
+                        .modelAttribute("paging", pageItemsDto.pageDto())
+                        .status(HttpStatus.OK)
+                        .build());
     }
 
     @GetMapping("/items/new")
-    public String showNewItemPage() {
-        return "newItem";
+    public Mono<String> showNewItemPage() {
+        log.info("---endpoint 'showNewItemPage' was started---");
+
+        return Mono.just("newItem");
     }
 
+
     @PostMapping(value = "/items/new")
-    public String createItem(@Validated @ModelAttribute ItemCreateDto item,
-                             BindingResult bindingResult,
-                             RedirectAttributes redirectAttributes) {
+    public Mono<Rendering> createItem(@Validated @ModelAttribute ItemCreateDto item,
+                                      BindingResult bindingResult) {
+        log.info("---endpoint 'createItem' with input dto: {} was started---", item);
+
         if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute("errors", bindingResult.getAllErrors());
-            redirectAttributes.addFlashAttribute("title", item.title());
-            redirectAttributes.addFlashAttribute("description", item.description());
-            redirectAttributes.addFlashAttribute("price", item.price());
-            return "redirect:/items/new";
+            return Mono.just(Rendering.view("newItem")
+                    .modelAttribute("errors", bindingResult.getAllErrors())
+                    .modelAttribute("title", item.title())
+                    .modelAttribute("description", item.description())
+                    .modelAttribute("price", item.price())
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build());
         }
-        ItemDto itemDto = itemService.createItem(item);
-        redirectAttributes.addFlashAttribute("item", itemDto);
-        return "redirect:/items/images/new";
+        return itemService.createItem(item)
+                .map(savedItemDto -> Rendering.view("newImage")
+                        .modelAttribute("item", savedItemDto)
+                        .status(HttpStatus.CREATED)
+                        .build());
     }
 
     @GetMapping("/items/images/new")
-    public String showNewImagePage() {
-        return "newImage";
+    public Mono<String> showNewImagePage() {
+        log.info("---endpoint 'showNewImagePage' was started---");
+
+        return Mono.just("newImage");
     }
 
-    @PostMapping(value = "/items/{id}/images/new", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public String updateImageByItemId(@PathVariable Long id, @RequestPart("image") MultipartFile image) {
-        imageService.updateImageByItemId(image, id);
-        return "redirect:/items/{id}";
+    @PostMapping("/items/{id}/images/new")
+    public Mono<String> updateImageById(@PathVariable Long id, @RequestPart FilePart image) {
+        log.info("---endpoint 'updateImageById' with id: {} was started---", id);
+
+        return imageService.updateImageByItemId(image, id).thenReturn("redirect:/items/" + id);
     }
 
+    @GetMapping("/items/{id}")
+    public Mono<Rendering> getItem(@PathVariable Long id,
+                                   @SessionAttribute("cart") Map<Long, Integer> cart) {
+
+        log.info("---endpoint 'getItem' with id: {} and cart: {} from session was started---", id, cart);
+
+        return itemService.getItemByIdWithCartCount(id, cart)
+                .map(dto -> Rendering.view("item")
+                        .modelAttribute("item", dto)
+                        .status(HttpStatus.OK)
+                        .build());
+    }
+
+    @PostMapping("/items")
+    public Mono<String> changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
+                                                        @SessionAttribute Map<Long, Integer> cart
+    ) {
+        log.info("---endpoint 'changeCartItemCountForItemsPage' with input form params: {},{} was started---", params, cart);
+
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .thenReturn("redirect:/items?search=" + params.search()
+                            + "&sort=" + params.sort()
+                            + "&pageSize=" + params.pageSize()
+                            + "&pageNumber=" + params.pageNumber());
+    }
+
+    @PostMapping("/items/{id}")
+    public Mono<Rendering> changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
+                                                          @SessionAttribute Map<Long, Integer> cart
+    ) {
+        log.info("---endpoint 'changeCartItemCountForItemPage' with input params: {},{} was started---", params, cart);
+
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .map(itemDto -> Rendering
+                        .view("item")
+                        .modelAttribute("item", itemDto)
+                        .status(HttpStatus.OK)
+                        .build());
+    }
 }

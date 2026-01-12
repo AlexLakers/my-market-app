@@ -7,36 +7,43 @@ import com.alex.market.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.result.view.Rendering;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
 @Controller
-@RequestMapping("/cart")
 @RequiredArgsConstructor
-@Validated
+@RequestMapping("/cart")
+@Slf4j
 public class CartController {
 
     private final CartService cartService;
-    @GetMapping("/items")
-    public String getItems(Model model,
-                           @SessionAttribute Map<Long, Integer> cart){
-        CartDto cartDto=cartService.getItemsCartWithTotal(cart);
-        model.addAttribute("items", cartDto.items());
-        model.addAttribute("total", cartDto.total());
-        return "cart";
-    }
 
+    @GetMapping("/items")
+    public Mono<Rendering> getItemsCartWithTotal(@SessionAttribute Map<Long, Integer> cart) {
+        log.info("---endpoint 'getItemsCartWithTotal' with cart:{} from session was started---", cart);
+
+        return cartService.getItemsCartWithTotal(cart)
+                .map(cartDto -> Rendering.view("cart")
+                        .modelAttribute("items", cartDto.items())
+                        .modelAttribute("total", cartDto.total())
+                        .status(HttpStatus.OK)
+                        .build());
+    }
 
     @PostMapping("/items")
-    public String changeCartItemCountForCartPage(@Valid @ModelAttribute InputFormCart params,
-                                                 @SessionAttribute @NotNull Map<Long, Integer> cart
-    ){
-        cartService.changeItemCount(new CartChangeDto(params.id(),params.action(),cart));
-        return "redirect:/cart/items";
-    }
+    public Mono<String> changeCartItemCountForCartPage(@Valid @ModelAttribute InputFormCart params,
+                                                       @SessionAttribute @NotNull Map<Long, Integer> cart
+    ) {
+        log.info("---endpoint 'changeCartItemCountForCartPage' with input form params:{} and cart from session:{} was started---",
+                params, cart);
 
+        return cartService.changeItemCount(new CartChangeDto(params.id(), params.action(), cart))
+                .thenReturn("redirect:/cart/items");
+    }
 }

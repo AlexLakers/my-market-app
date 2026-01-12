@@ -1,42 +1,94 @@
 package com.alex.market.service.impl;
 
+import com.alex.market.config.ConfigProperties;
 import com.alex.market.exception.ImageStorageException;
 import com.alex.market.exception.ItemNotFoundException;
 import com.alex.market.repository.ItemRepository;
 import com.alex.market.service.ImageService;
+import com.alex.market.validation.ValidMessages;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class ImageServiceImpl implements ImageService {
+    private final ItemRepository itemRepository;
+    private final ConfigProperties configProperties;
 
-    private ItemRepository itemRepository;
-    private Path baseDir;
-
-    public ImageServiceImpl(@Value("${market.dir:/home/alexlakers/my-market}") Path baseDir,
-                            ItemRepository itemRepository) {
-        this.baseDir = baseDir;
-        this.itemRepository = itemRepository;
-    }
 
     @Override
-    @Transactional
-    public void updateImageByItemId(MultipartFile image, Long id) {
-        if (!itemRepository.existsById(id)) {
-            throw new ItemNotFoundException(id);
+    public Mono<Void> updateImageByItemId(FilePart file, Long id) {
+        log.info("Update image for item with id: {}", id);
+
+        return itemRepository.existsById(id)
+                .filter(Boolean.TRUE::equals)
+                .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
+                .then(saveImage(file, id))
+                .flatMap(imgPath -> itemRepository.updateImagePathById(id, imgPath))
+                .then()
+                .doOnSuccess(unused -> log.info("Image updated for item with id: {}", id))
+                .doOnError(error -> {
+                    if (error instanceof ItemNotFoundException) {
+                        log.warn("Item with id: {} not found for image update", id);
+                    } else {
+                        log.error("Failed to update image for item with id: {}: {}", id, error.getMessage());
+                    }
+                });
+    }
+
+    private Mono<String> saveImage(FilePart file, Long id) {
+        log.debug("Save image for item {}: {}", id, file.filename());
+
+        String fileName = generateNewImagePath(id, file.filename());
+        Path baseDir = configProperties.getDir();
+        Path imagesDir = baseDir.resolve("images");
+        Path fullPath = imagesDir.resolve(fileName);
+
+        try {
+            Files.createDirectories(imagesDir);
+        } catch (IOException e) {
+            return Mono.error(new ImageStorageException("Failed to create directory: " + e.getMessage()));
         }
 
-        String imageName = generateNewImagePath(id, image.getOriginalFilename());
-        String imagePath = saveFile(image, imageName);
+        return file.transferTo(fullPath)
+                .then(Mono.fromCallable(() -> {
 
-        itemRepository.updateImagePathById(id, imagePath);
+                    long fileSize = Files.size(fullPath);
+                    log.debug("File saved, size: {} bytes", fileSize);
+
+                    if (fileSize <= 0) {
+                        Files.deleteIfExists(fullPath);
+                        throw new ImageStorageException(ValidMessages.FILE_EMPTY);
+                    }
+
+                    if (fileSize > configProperties.getMaxSize()) {
+                        Files.deleteIfExists(fullPath);
+                        throw new ImageStorageException(ValidMessages.FILE_TOO_BIG);
+                    }
+
+                    return baseDir.relativize(fullPath).toString();
+                }))
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnSuccess(path ->
+                        log.info("Image saved for item with id: {} at {}", id, path)
+                )
+                .doOnError(error ->
+                        log.error("Failed to save image for item with id: {}: {}", id, error.getMessage())
+                );
     }
 
     private String generateNewImagePath(Long id, String origName) {
@@ -49,19 +101,6 @@ public class ImageServiceImpl implements ImageService {
                 .filter(name -> name.contains("."))
                 .map(name -> name.substring(name.lastIndexOf(".")))
                 .orElse("");
-    }
-
-    private String saveFile(MultipartFile file, String fileName) {
-        Path fullPath = Path.of(baseDir.toString(), "images", fileName);
-        Path relativePath = baseDir.relativize(fullPath);
-        try {
-            Files.createDirectories(fullPath.getParent());
-
-            file.transferTo(fullPath.toFile());
-        } catch (Exception e) {
-            throw new ImageStorageException(fullPath.toString());
-        }
-        return relativePath.toString();
     }
 }
 

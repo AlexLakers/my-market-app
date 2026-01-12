@@ -1,109 +1,103 @@
 package com.alex.market.integration.repository;
 
 import com.alex.market.config.PostgresTestconteinerConfig;
+import com.alex.market.integration.TestDataLoader;
 import com.alex.market.model.Item;
 import com.alex.market.repository.ItemRepository;
-import com.alex.market.search.ItemSort;
-import com.alex.market.search.ItemSpecification;
-import com.alex.market.search.SortColumn;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Sort;
+import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.Comparator;
-import java.util.stream.Stream;
-
-@DataJpaTest
+@DataR2dbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ImportTestcontainers(PostgresTestconteinerConfig.class)
-@Transactional
-@Sql(scripts = {
-        "/sql/cleanup.sql",
-        "/sql/data-test.sql"
-}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
-
+@Testcontainers
+@ImportTestcontainers({PostgresTestconteinerConfig.class})
+@ActiveProfiles("test")
 class ItemRepositoryIT {
 
-    private final static Long VALID_ID=1000L;
+    private static final Long MIN_PRICE = 500L;
+
     @Autowired
     private ItemRepository itemRepository;
 
-    @ParameterizedTest
-    @MethodSource("getArgs")
-    void findAll_shouldReturnPageItemsByConditionsAndPagination(String search, int pageNumber, int pageSize, int expectedSize, Item expectedItem) {
 
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, ItemSort.getOrderByPriceOrTitle(SortColumn.NO));
+    @Autowired
+    private DatabaseClient databaseClient;
 
-        Page<Item> actual = itemRepository.findAll(ItemSpecification.getSpecByTitleOrDescription(search), pageable);
-
-        Assertions.assertThat(actual)
-                .isNotNull()
-                .hasSize(expectedSize)
-                .contains(expectedItem);
-
+    @BeforeEach
+    void setup() {
+        TestDataLoader.loadTestData(databaseClient);
     }
 
     @ParameterizedTest
-    @MethodSource("getArgsSort")
-    void findAll_shouldReturnPageItemsBySort(SortColumn sortColumn, Comparator<Item> givenComparator) {
+    @CsvSource({
+            "description1, 2",
+            "test1, 2"
+    })
+    void findAll_shouldReturnPageWithContentBySearch(String search, int expectedSize) {
 
-        Pageable pageable = PageRequest.of(0, 3, ItemSort.getOrderByPriceOrTitle(sortColumn));
+        var pageable = PageRequest.of(0, expectedSize, Sort.by("price"));
+        Page<Item> page = itemRepository.findAll(search, pageable)
+                .block();
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.getContent()).first().hasFieldOrPropertyWithValue(Item.Fields.price, MIN_PRICE);
+        Assertions.assertThat(page.getTotalElements()).isEqualTo(expectedSize);
+        Assertions.assertThat(page.getNumber()).isEqualTo(0);
+        Assertions.assertThat(page.getSize()).isEqualTo(expectedSize);
+        Assertions.assertThat(page.hasNext()).isFalse();
+        Assertions.assertThat(page.hasPrevious()).isFalse();
+    }
 
-        Page<Item> actual = itemRepository.findAll(ItemSpecification.getSpecByTitleOrDescription(""), pageable);
+    @ParameterizedTest
+    @NullAndEmptySource
+    void findAll_shouldReturnPageWithAllContent(String givenSearch) {
+        var pageable = PageRequest.of(0, 2, Sort.by("price"));
+        Page<Item> page = itemRepository.findAll(givenSearch, pageable)
+                .block();
 
-        Assertions.assertThat(actual.getContent()).
-                isSortedAccordingTo(givenComparator);
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.getContent()).first().hasFieldOrPropertyWithValue(Item.Fields.price, MIN_PRICE);
+        Assertions.assertThat(page.getTotalElements()).isEqualTo(3);
+        Assertions.assertThat(page.getNumber()).isEqualTo(0);
+        Assertions.assertThat(page.getSize()).isEqualTo(2);
+        Assertions.assertThat(page.hasNext()).isTrue();
+        Assertions.assertThat(page.hasPrevious()).isFalse();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            {
+                    "test1-ball, true",
+                    "test1-car, true",
+                    "new-item, false"
+            }
+    )
+    void existsByTitle_shouldReturnTrue_whenExists(String title, boolean expected) {
+        boolean actualExists = itemRepository.existsByTitle(title).block();
+
+        Assertions.assertThat(actualExists).isEqualTo(expected);
     }
 
     @Test
-    void updateImagePath_shouldUpdateImagePath(){
-        itemRepository.updateImagePathById(VALID_ID,"new_image_path");
+    void updateImagePathById_shouldUpdateImagePathInDB() {
+        Long id = 1000L;
+        Item actualWithPath = itemRepository.updateImagePathById(id, "images/1000.jpg")
+                .then(itemRepository.findById(id)).block();
 
-        Assertions.assertThat(itemRepository.findById(VALID_ID).isPresent()).isTrue();
-        Assertions.assertThat(itemRepository.findById(VALID_ID).get()).hasFieldOrPropertyWithValue("imgPath", "new_image_path");
+        Assertions.assertThat(actualWithPath)
+                .hasFieldOrPropertyWithValue(Item.Fields.imgPath,"images/1000.jpg");
     }
-
-    static Stream<Arguments> getArgsSort() {
-
-        Comparator<Item> comparator = Comparator.comparing(Item::getId);
-        Comparator<Item> comparator2 = Comparator.comparing(Item::getTitle);
-        Comparator<Item> comparator3 = Comparator.comparing(Item::getPrice);
-
-        return Stream.of(
-                Arguments.of(SortColumn.NO, comparator),
-                Arguments.of(SortColumn.ALPHA, comparator2),
-                Arguments.of(SortColumn.PRICE, comparator3)
-        );
-    }
-
-    static Stream<Arguments> getArgs() {
-        Item expectedItem = Item.builder()
-                .id(1000L)
-                .title("test-ball")
-                .description("Test ball description")
-                .imgPath("images/test-ball.jpg")
-                .price(500L)
-                .build();
-
-
-        return Stream.of(
-                Arguments.of("test", 0, 3, 3, expectedItem),
-                Arguments.of("", 0, 3, 3, expectedItem),
-                Arguments.of(null, 0, 3, 3, expectedItem),
-                Arguments.of("ball", 0, 3, 1, expectedItem)
-        );
-    }
-
-
 }
