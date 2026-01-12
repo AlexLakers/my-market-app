@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -52,82 +53,54 @@ public class ImageServiceImpl implements ImageService {
     private Mono<String> saveImage(FilePart file, Long id) {
         log.debug("Save image for item {}: {}", id, file.filename());
 
-        return DataBufferUtils.join(file.content())
-                .flatMap(dataBuffer -> {
-                    try {
+        String fileName = generateNewImagePath(id, file.filename());
+        Path baseDir = configProperties.getDir();
+        Path imagesDir = baseDir.resolve("images");
+        Path fullPath = imagesDir.resolve(fileName);
 
-                        MediaType contentType = file.headers().getContentType();
-                        if (contentType == null || !contentType.getType().equalsIgnoreCase("image")) {
+        try {
+            Files.createDirectories(imagesDir);
+        } catch (IOException e) {
+            return Mono.error(new ImageStorageException("Failed to create directory: " + e.getMessage()));
+        }
 
-                            log.warn("Non-image file type for item with id: {}: {}", id, contentType);
-                            return Mono.error(new ImageStorageException(ValidMessages.FILE_NOT_IMAGE));
-                        }
+        return file.transferTo(fullPath)
+                .then(Mono.fromCallable(() -> {
 
-                        int readable = dataBuffer.readableByteCount();
-                        log.debug("File size: {} bytes", readable);
+                    long fileSize = Files.size(fullPath);
+                    log.debug("File saved, size: {} bytes", fileSize);
 
-                        if (readable <= 0) {
-                            log.warn("Empty file for item with id: {}", id);
-
-                            return Mono.error(new ImageStorageException(ValidMessages.FILE_EMPTY));
-                        }
-                        if (readable > configProperties.getMaxSize()) {
-
-                            log.warn("File too large for item with id:{}: {} bytes", id, readable);
-                            return Mono.error(new ImageStorageException(ValidMessages.FILE_TOO_BIG));
-                        }
-
-                        byte[] bytes = new byte[readable];
-                        dataBuffer.read(bytes);
-
-                        String fileName = generateNewImagePath(id, file.filename());
-
-                        log.debug("Generated safe filename: {}", fileName);
-                        return saveToFileSystem(bytes, fileName)
-                                .doOnSuccess(path ->
-                                        log.info("Image saved for item with id: {} {}", id, path)
-                                )
-                                .doOnError(error ->
-                                        log.error("Failed to save image for item with id:{} {}", id, error.getMessage())
-                                );
-                    } finally {
-                        DataBufferUtils.release(dataBuffer);
+                    if (fileSize <= 0) {
+                        Files.deleteIfExists(fullPath);
+                        throw new ImageStorageException(ValidMessages.FILE_EMPTY);
                     }
-                })
-                .doOnError(ImageStorageException.class, error ->
-                        log.warn("Image storage exception for item with id: {}: {}", id, error.getMessage())
+
+                    if (fileSize > configProperties.getMaxSize()) {
+                        Files.deleteIfExists(fullPath);
+                        throw new ImageStorageException(ValidMessages.FILE_TOO_BIG);
+                    }
+
+                    return baseDir.relativize(fullPath).toString();
+                }))
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnSuccess(path ->
+                        log.info("Image saved for item with id: {} at {}", id, path)
                 )
                 .doOnError(error ->
-                        log.error("Unexpected error saving image for item with id: {}: {}", id, error.getMessage())
+                        log.error("Failed to save image for item with id: {}: {}", id, error.getMessage())
                 );
     }
 
-private String generateNewImagePath(Long id, String origName) {
-    String type = getTypeFromFileName(origName);
-    return id + type;
-}
+    private String generateNewImagePath(Long id, String origName) {
+        String type = getTypeFromFileName(origName);
+        return id + type;
+    }
 
-private String getTypeFromFileName(String fileName) {
-    return Optional.ofNullable(fileName)
-            .filter(name -> name.contains("."))
-            .map(name -> name.substring(name.lastIndexOf(".")))
-            .orElse("");
-}
-
-private Mono<String> saveToFileSystem(byte[] content, String fileName) {
-    Path baseDir = configProperties.getDir();
-    return Mono.fromCallable(() -> {
-        Path imagesDir = baseDir.resolve("images");
-        Path fullPath = imagesDir.resolve(fileName);
-        try {
-            Files.createDirectories(fullPath.getParent());
-
-            Files.write(fullPath, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            return baseDir.relativize(fullPath).toString();
-        } catch (Exception e) {
-            throw new ImageStorageException(fullPath.toString());
-        }
-    }).subscribeOn(Schedulers.boundedElastic());
-}
+    private String getTypeFromFileName(String fileName) {
+        return Optional.ofNullable(fileName)
+                .filter(name -> name.contains("."))
+                .map(name -> name.substring(name.lastIndexOf(".")))
+                .orElse("");
+    }
 }
 

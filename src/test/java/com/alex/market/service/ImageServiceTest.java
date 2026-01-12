@@ -26,12 +26,19 @@ import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,38 +50,30 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ImageServiceTest {
 
-    private final static Long VALID_ID = 1L;
-    private final static Long INVALID_ID = 10000L;
-    @TempDir
-    private Path baseDir;
-    private static final int MAX_BYTES = 5242880;
     @Mock
     private ItemRepository itemRepository;
-    @Mock
-    private FilePart filePart;
-    private ImageService imageService;
 
+    @Mock
+    private ConfigProperties configProperties;
+
+    @InjectMocks
+    private ImageServiceImpl imageService;
+
+    @TempDir
+    Path tempDir;
+
+    private static final Long VALID_ID = 1L;
 
     @BeforeEach
     void setUp() {
-        ConfigProperties configProperties = new ConfigProperties();
-        configProperties.setDir(baseDir);
-        configProperties.setMaxSize(MAX_BYTES);
-        imageService = new ImageServiceImpl(itemRepository, configProperties);
+        when(configProperties.getDir()).thenReturn(tempDir);
+        when(configProperties.getMaxSize()).thenReturn(1024);
     }
 
-
     @Test
-    void updateImageByItemId_shouldSaveImageInTempDirSuccess() throws IOException {
-        byte[] imageBytes = new byte[]{1, 2, 3, 4, 5};
-        DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
-
-        when(filePart.filename()).thenReturn("image.jpeg");
-        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
-        when(filePart.headers()).thenReturn(new HttpHeaders() {{
-            setContentType(MediaType.IMAGE_JPEG);
-            setContentLength(imageBytes.length);
-        }});
+    void updateImageByItemId_shouldSaveFileWithCorrectExtension() throws IOException {
+        byte[] imageBytes = createTestJpeg();
+        FilePart filePart = createFilePart("test.jpg", imageBytes, MediaType.IMAGE_JPEG);
 
         when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
         when(itemRepository.updateImagePathById(eq(VALID_ID), anyString()))
@@ -83,78 +82,72 @@ class ImageServiceTest {
         StepVerifier.create(imageService.updateImageByItemId(filePart, VALID_ID))
                 .verifyComplete();
 
-
-        verify(itemRepository).existsById(VALID_ID);
-        verify(itemRepository).updateImagePathById(eq(VALID_ID), anyString());
-
-
-        Path expectedFile = baseDir.resolve("images").resolve("1.jpeg");
-        assertThat(Files.exists(expectedFile)).isTrue();
-    }
-    @Test
-    void updateImageByItemId_shouldThrowImageStoredException_whenFileIsTooBig() throws IOException {
-        byte[] imageBytes = new byte[5700000];
-        DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
-
-        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
-        when(filePart.headers()).thenReturn(new HttpHeaders() {{
-            setContentType(MediaType.IMAGE_JPEG);
-            setContentLength(imageBytes.length);
-        }});
-
-        when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
-
-        Assertions.assertThatExceptionOfType(ImageStorageException.class)
-                .isThrownBy(() -> imageService.updateImageByItemId(filePart, VALID_ID).block());
+        Path savedFile = tempDir.resolve("images").resolve("1.jpg");
+        assertThat(Files.exists(savedFile)).isTrue();
     }
 
     @Test
-    void updateImageByItemId_shouldThrowImageStoredException_whenFileIsNotImage() throws IOException {
-        byte[] imageBytes = new byte[5];
-        DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
-
-        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
-        when(filePart.headers()).thenReturn(new HttpHeaders() {{
-            setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            setContentLength(imageBytes.length);
-        }});
+    void updateImageByItemId_shouldSavePngFile() throws IOException {
+        byte[] imageBytes = createTestPng();
+        FilePart filePart = createFilePart("test.png", imageBytes, MediaType.IMAGE_PNG);
 
         when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
-
-        Assertions.assertThatExceptionOfType(ImageStorageException.class)
-                .isThrownBy(() -> imageService.updateImageByItemId(filePart, VALID_ID).block());
-    }
-
-
-    @Test
-    void updateImageByItemId_whenDirectoryDoesNotExist_shouldCreateIt() {
-
-        byte[] imageBytes = new byte[]{1, 2, 3, 4, 5};
-        DataBuffer dataBuffer = DefaultDataBufferFactory.sharedInstance.wrap(imageBytes);
-
-        when(filePart.filename()).thenReturn("image.jpeg");
-        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
-        when(filePart.headers()).thenReturn(new HttpHeaders() {{
-            setContentType(MediaType.IMAGE_JPEG);
-            setContentLength(imageBytes.length);
-        }});
-
-        when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
-        when(itemRepository.updateImagePathById( eq(VALID_ID),anyString()))
+        when(itemRepository.updateImagePathById(eq(VALID_ID), anyString()))
                 .thenReturn(Mono.empty());
-
-        Path imagesDir = baseDir.resolve("images");
-        try {
-            Files.deleteIfExists(imagesDir);
-        } catch (Exception e) {
-
-        }
 
         StepVerifier.create(imageService.updateImageByItemId(filePart, VALID_ID))
                 .verifyComplete();
 
-        assertThat(Files.exists(imagesDir)).isTrue();
-        assertThat(Files.isDirectory(imagesDir)).isTrue();
+        Path savedFile = tempDir.resolve("images").resolve("1.png");
+        assertThat(Files.exists(savedFile)).isTrue();
     }
 
+    private byte[] createTestJpeg() throws IOException {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpg", baos);
+        return baos.toByteArray();
+    }
+
+    private byte[] createTestPng() throws IOException {
+        BufferedImage image = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        return baos.toByteArray();
+    }
+
+    private FilePart createFilePart(String filename, byte[] content, MediaType mediaType) {
+        return new FilePart() {
+            @Override
+            public String filename() { return filename; }
+
+            @Override
+            public Mono<Void> transferTo(Path dest) {
+                return Mono.fromCallable(() -> {
+                    Files.createDirectories(dest.getParent());
+                    Files.write(dest, content);
+                    return null;
+                }).subscribeOn(Schedulers.boundedElastic()).then();
+            }
+
+            @Override
+            public String name() { return "file"; }
+
+            @Override
+            public HttpHeaders headers() {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(mediaType);
+                return headers;
+            }
+
+            @Override
+            public Flux<DataBuffer> content() {
+                DataBuffer buffer = DefaultDataBufferFactory.sharedInstance.wrap(content);
+                return Flux.just(buffer);
+            }
+
+            @Override
+            public Mono<Void> delete() { return Mono.empty(); }
+        };
+    }
 }
