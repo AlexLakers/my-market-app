@@ -1,0 +1,55 @@
+server:
+  port: ${APP_PORT:8080}
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+
+  application:
+    name: market-mvc
+
+  main:
+    banner-mode: off
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    default-schema: public
+    user: ${spring.r2dbc.username}
+    password: ${spring.r2dbc.password}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:skeleton_repository}
+    driver-class-name: org.postgresql.Driver
+
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:skeleton_repository}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30s
+      validation-query: SELECT 1
+  sql:
+    init:
+      mode: always
+
+market:
+  upload:
+    maxSize: ${MAX_IMAGE_SIZE:5242880}
+    dir: ${MARKET_DIR:/home/alexlakers/my-market}
+
+logging:
+  level:
+    root: WARN
+    com.alex.market: INFO
+    com.alex.market.service: DEBUG
+    com.alex.market.repository: INFO
+    org.springframework.r2dbc: WARN
+    org.springframework.transaction: INFO
+  file:
+    name: ${MARKET_DIR:/home/alexlakers/my-market}/market.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
