@@ -7,7 +7,6 @@ import com.alex.market.mvc.dto.output.OrderDto;
 import com.alex.market.mvc.exception.OrderNotFoundException;
 import com.alex.market.mvc.service.OrderService;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
@@ -40,7 +39,7 @@ class OrderControllerWebFluxIT {
     void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        when(orderService.findAllOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
+        when(orderService.findAllPaidOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
 
         testClient.get()
                 .uri("/orders")

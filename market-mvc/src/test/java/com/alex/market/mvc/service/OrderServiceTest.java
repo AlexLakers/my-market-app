@@ -58,13 +58,13 @@ class OrderServiceTest {
     }
 
     @Test
-    void getAllOrders_shouldReturnOrderDtoListSuccess() {
+    void getAllPaidOrders_shouldReturnOrderDtoListSuccess() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
         when(orderRepository.findAll()).thenReturn(Flux.fromIterable(List.of(Order.builder().id(VALID_ID).totalSum(1000L).build())));
         when(orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID)).thenReturn(Flux.fromIterable(List.of(orderItemsDetails)));
         when(itemMapper.toDtoFromOrderItemDetails(orderItemsDetails)).thenReturn(itemDto);
 
-        List<OrderDto> actualDto = orderService.findAllOrders().collectList().block();
+        List<OrderDto> actualDto = orderService.findAllPaidOrders().collectList().block();
 
         assertThat(actualDto).hasSize(1).contains(orderDto);
     }
