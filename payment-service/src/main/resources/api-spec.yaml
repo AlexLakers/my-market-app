@@ -1,0 +1,146 @@
+openapi: 3.0.3
+info:
+  title: Payment Process API
+  description: API для взаимодействия с сервисом оплаты
+  version: 1.0.0
+  contact:
+    name: AlexLakers
+    email: AlexLakers@ya.ru
+
+servers:
+  - url: http://localhost:8081
+    description: Локальный сервер для разработки
+  - url: http://payment-service:8081
+    description: Docker-контейнер сервер
+
+paths:
+  /api/payments/balance/{accountId}:
+    get:
+      summary: получить баланс пользователя
+      operationId: getBalanceById
+      parameters:
+        - name: accountId
+          in: path
+          description: id владельца счета
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Баланс успешно получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '404':
+          description: Счет не найден
+        '5XX':
+          description: Внутренняя ошибка сервера
+  /api/payments/pay:
+    post:
+      summary: оплатить заказ
+      operationId: processPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Тразакция завершена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '5XX':
+          description: Внутренняя ошибка сервера
+
+components:
+  schemas:
+    BalanceResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+          description: id владельца счета
+          example: 10
+        balance:
+          type: integer
+          format: int64
+          description: текущий баланс на счете пользователя
+          example: 100000
+      required:
+        - accountId
+        - balance
+    PaymentRequest:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+          description: id владельца счета
+          example: 10
+        orderId:
+          type: integer
+          format: int64
+          description: id оплачиваемого заказа
+          example: 20
+        amount:
+          type: integer
+          format: int64
+          description: общая сумма заказа
+          example: 1000
+      required:
+        - accountId
+        - orderId
+        - amount
+
+    TransactionStatus:
+          type: string
+          enum:
+            - SUCCESS
+            - FAILED
+           # - PENDING
+           #- CANCELLED
+          description: Статус транзакции
+          example: SUCCESS
+
+    PaymentResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+          description: id владельца счета
+          example: 10
+        orderId:
+          type: integer
+          format: int64
+          description: id оплаченного заказа
+          example: 20
+        newBalance:
+          type: integer
+          format: int64
+          description: новый баланс на счете пользователя
+          example: 99000
+        transactionId:
+          type: string
+          description: id транзакции пользователя
+        status:
+          $ref: '#/components/schemas/TransactionStatus'
+        amount:
+          type: integer
+          format: int64
+          description: общая сумма заказа
+          example: 1000
+      required:
+        - accountId
+        - orderId
+        - newBalance
+        - transactionId
+        - status
+        - amount
+
