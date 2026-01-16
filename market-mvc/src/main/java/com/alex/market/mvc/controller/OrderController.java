@@ -19,7 +19,7 @@ public class OrderController {
 
     @GetMapping("/orders")
     public Mono<Rendering> getAllOrders() {
-        return orderService.findAllOrders()
+        return orderService.findAllPaidOrders()
                 .collectList()
                 .map(orders -> Rendering
                         .view("orders")

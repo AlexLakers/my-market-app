@@ -27,4 +27,7 @@ public class Order {
 
     @Column("total_sum")
     private Long totalSum;
+
+    @Column("status")
+    private OrderStatus status;
 }

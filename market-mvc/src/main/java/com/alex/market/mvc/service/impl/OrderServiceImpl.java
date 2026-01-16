@@ -8,6 +8,7 @@ import com.alex.market.mvc.mapper.ItemMapper;
 import com.alex.market.mvc.model.Item;
 import com.alex.market.mvc.model.Order;
 import com.alex.market.mvc.model.OrderItem;
+import com.alex.market.mvc.model.OrderStatus;
 import com.alex.market.mvc.repository.OrderItemRepository;
 import com.alex.market.mvc.repository.OrderRepository;
 import com.alex.market.mvc.repository.projection.OrderItemsDetails;
@@ -44,6 +45,7 @@ public class OrderServiceImpl implements OrderService {
                     log.info("Total sum or order: {}", totalSum);
 
                     Order order = new Order();
+                    order.setStatus(OrderStatus.PAID);
                     order.setTotalSum(totalSum);
                     return orderRepository.save(order)
                             .flatMap(savedOrder -> {
@@ -76,10 +78,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Flux<OrderDto> findAllOrders() {
+    public Flux<OrderDto> findAllPaidOrders() {
         log.info("Getting all orders");
 
-        return orderRepository.findAll()
+        return orderRepository.findAllByStatus(OrderStatus.PAID)
                 .flatMap(order ->
                         orderItemRepository.findItemsWithDetailsByOrderId(order.getId())
                                 .collectList()

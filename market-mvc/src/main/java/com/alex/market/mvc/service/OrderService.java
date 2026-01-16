@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 public interface OrderService {
-    Flux<OrderDto> findAllOrders();
+    Flux<OrderDto> findAllPaidOrders();
     Mono<OrderDto> findOrderWithItems(Long orderId);
     Mono<Long> createOrder(Map<Long, Integer> cartItemsCounts);
 }
