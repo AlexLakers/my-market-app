@@ -14,10 +14,10 @@ servers:
     description: Docker-контейнер сервер
 
 paths:
-  /api/payments/balance/{accountId}:
+  /api/payments/accounts/{accountId}:
     get:
-      summary: получить баланс пользователя
-      operationId: getBalanceById
+      summary: получить счет пользователя
+      operationId: getAccountById
       parameters:
         - name: accountId
           in: path
@@ -28,11 +28,11 @@ paths:
             format: int64
       responses:
         '200':
-          description: Баланс успешно получен
+          description: Счет успешно получен
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BalanceResponse'
+                $ref: '#/components/schemas/AccountResponse'
         '404':
           description: Счет не найден
         '5XX':
@@ -59,7 +59,7 @@ paths:
 
 components:
   schemas:
-    BalanceResponse:
+    AccountResponse:
       type: object
       properties:
         accountId:
