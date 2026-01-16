@@ -9,12 +9,15 @@
         </preConditions>
         <insert tableName="orders">
             <column name="total_sum" valueNumeric="1000"/>
+            <column name="status" value="PAID"/>
         </insert>
         <insert tableName="orders">
             <column name="total_sum" valueNumeric="100000"/>
+            <column name="status" value="PAID"/>
         </insert>
         <insert tableName="orders">
             <column name="total_sum" valueNumeric="20000"/>
+            <column name="status" value="PAID"/>
         </insert>
 
         <rollback>
