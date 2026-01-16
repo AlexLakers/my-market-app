@@ -78,7 +78,7 @@ components:
     PaymentRequest:
       type: object
       properties:
-        accountId:
+        userId:
           type: integer
           format: int64
           description: id владельца счета
@@ -114,7 +114,7 @@ components:
         accountId:
           type: integer
           format: int64
-          description: id владельца счета
+          description: id счета
           example: 10
         orderId:
           type: integer
@@ -127,8 +127,9 @@ components:
           description: новый баланс на счете пользователя
           example: 99000
         transactionId:
-          type: string
-          description: id транзакции пользователя
+          type: integer
+          description: id транзакции оплаты
+          example: 30
         status:
           $ref: '#/components/schemas/TransactionStatus'
         amount:
