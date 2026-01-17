@@ -37,6 +37,27 @@ public class PaymentServiceImpl implements PaymentService {
                 })
                 .switchIfEmpty(Mono.defer(() -> {
 
+                    if (paymentRequest.getAccountId() != null &&
+                        !GENERAL_ACCOUNT_ID.equals(paymentRequest.getAccountId())) {
+                        log.warn("Invalid accountId: {} for order with id: {}, expected: {}",
+                                paymentRequest.getAccountId(), paymentRequest.getOrderId(), GENERAL_ACCOUNT_ID);
+
+                        return createFailedTransaction(
+                                paymentRequest,
+                                String.format("Only account with id=%d is supported", GENERAL_ACCOUNT_ID),
+                                TransactionType.PAYMENT
+                        ).map(transactionMapper::toPaymentResponse);
+                    }
+
+                    if (paymentRequest.getAmount() == null || paymentRequest.getAmount() <= 0) {
+                        log.warn("Invalid amount: {} for order {}",
+                                paymentRequest.getAmount(), paymentRequest.getOrderId());
+                        return createFailedTransaction(
+                                paymentRequest,
+                                String.format("Amount must be positive, account with id: %d ", GENERAL_ACCOUNT_ID),
+                                TransactionType.PAYMENT
+                        ).map(transactionMapper::toPaymentResponse);
+                    }
 
                     return accountRepository.decrementBalanceAtomic(
                                     GENERAL_ACCOUNT_ID,
