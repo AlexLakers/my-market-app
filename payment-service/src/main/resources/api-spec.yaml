@@ -94,7 +94,7 @@ components:
           description: общая сумма заказа
           example: 1000
       required:
-        - accountId
+        - userId
         - orderId
         - amount
 
@@ -121,17 +121,16 @@ components:
           format: int64
           description: id оплаченного заказа
           example: 20
-        newBalance:
-          type: integer
-          format: int64
-          description: новый баланс на счете пользователя
-          example: 99000
         transactionId:
           type: integer
           description: id транзакции оплаты
           example: 30
         status:
           $ref: '#/components/schemas/TransactionStatus'
+        failureReason:
+          type: string
+          description: Сообщение об ошибке
+          example: Amount must be positive
         amount:
           type: integer
           format: int64

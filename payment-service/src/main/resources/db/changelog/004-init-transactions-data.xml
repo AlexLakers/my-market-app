@@ -10,7 +10,6 @@
         <insert tableName="transactions">
             <column name="account_id" value="1"/>
             <column name="order_id" value="2"/>
-            <column name="new_balance" valueNumeric="1000"/>
             <column name="amount" valueNumeric="100000"/>
             <column name="status" value="SUCCESS"/>
             <column name="type" value="PAYMENT"/>
@@ -19,10 +18,10 @@
         <insert tableName="transactions">
             <column name="account_id" value="1"/>
             <column name="order_id" value="3"/>
-            <column name="new_balance" valueNumeric="100000"/>
             <column name="amount" valueNumeric="1000"/>
             <column name="status" value="FAILED"/>
             <column name="type" value="PAYMENT"/>
+            <column name="failure_reason" value="The amount must be positive"/>
         </insert>
 
 
