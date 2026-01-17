@@ -14,16 +14,3 @@ public interface AccountMapper {
    @Mapping(source = "id", target = "accountId")
    AccountResponse toAccountResponse (Account account);
 }
-/*@Mapper(componentModel = "spring")
-public interface ItemMapper {
-
-    @Mapping(target = "price", source = "item.price")
-    @Mapping(target = "count", source = "count")
-    ItemDto toDto(Item item, Integer count);
-
-    default ItemDto toDto(Item item, Map<Long, Integer> cart) {
-        return toDto(item, cart.getOrDefault(item.getId(), 0));
-    }
-
-    ItemDto toDtoFromOrderItemDetails(OrderItemsDetails orderItemsDetails);
-}*/
