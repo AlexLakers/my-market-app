@@ -43,36 +43,8 @@ public class Transaction {
     private String failureReason;
 
     @Column("created_at")
+    @CreatedDate
     private LocalDateTime createdAt;
-
-    public static Transaction success(Long accountId,
-                                      Long orderId,
-                                      Long amount,
-                                      TransactionType type) {
-        return Transaction.builder()
-                .status(TransactionStatus.SUCCESS)
-                .accountId(accountId)
-                .orderId(orderId)
-                .amount(amount)
-                .type(type)
-                .createdAt(LocalDateTime.now())
-                .build();
-    }
-
-    public static Transaction failed(Long accountId,
-                                     Long orderId,
-                                     Long amount,
-                                     TransactionType type) {
-        return Transaction.builder()
-                .status(TransactionStatus.FAILED)
-                .accountId(accountId)
-                .orderId(orderId)
-                .amount(amount)
-                .type(type)
-                .createdAt(LocalDateTime.now())
-                .build();
-    }
-
 
 }
 
