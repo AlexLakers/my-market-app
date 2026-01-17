@@ -32,9 +32,9 @@ spring:
 logging:
   level:
     root: WARN
-    com.alex.market: INFO
-    com.alex.market.service: DEBUG
-    com.alex.market.repository: INFO
+    com.alex.payment: INFO
+    com.alex.payment.service: DEBUG
+    com.alex.payment.repository: INFO
     org.springframework.r2dbc: WARN
     org.springframework.transaction: INFO
   file:
