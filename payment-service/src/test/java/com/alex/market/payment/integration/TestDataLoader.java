@@ -22,7 +22,7 @@ public class TestDataLoader {
 
         databaseClient.sql("""
                 INSERT INTO transactions (id, account_id,order_id,amount,status,type,failure_reason) VALUES
-                (1000, 1,1,10000,'SUCCESS','PAYMENT',NULL),
+                (1, 1,1,10000,'SUCCESS','PAYMENT',NULL),
                 (1001, 0,2,100,'FAILED','PAYMENT','Only account with id=1 is supported')
                 """).fetch().rowsUpdated().block();
     }
