@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 
 @SpringJUnitConfig
 class PaymentServiceTest {
@@ -38,11 +39,11 @@ class PaymentServiceTest {
     @Autowired
     private PaymentService paymentService;
 
-    private Long transactionId=1L;
-    private Long orderId=1L;
-    private Long accountId=1L;
-    private Long userId=1L;
-    private Long amount=300L;
+    private Long transactionId = 1L;
+    private Long orderId = 1L;
+    private Long accountId = 1L;
+    private Long userId = 1L;
+    private Long amount = 300L;
 
 
     @BeforeEach
@@ -62,9 +63,9 @@ class PaymentServiceTest {
                 .expectNext(response)
                 .verifyComplete();
 
-        Mockito.verify(transactionRepository, Mockito.times(1)).findByOrderId(orderId);
-        Mockito.verify(transactionMapper, Mockito.times(1)).toPaymentResponse(transaction);
-        Mockito.verify(accountRepository, Mockito.never()).decrementBalanceAtomic(accountId, amount);
+        verify(transactionRepository, Mockito.times(1)).findByOrderId(orderId);
+        verify(transactionMapper, Mockito.times(1)).toPaymentResponse(transaction);
+        verify(accountRepository, Mockito.never()).decrementBalanceAtomic(accountId, amount);
 
     }
 

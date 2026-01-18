@@ -1,11 +1,10 @@
-package com.alex.market.payment.repository;
+package com.alex.market.payment.integration.repository;
 
-import com.alex.market.payment.api.dto.PaymentRequest;
 import com.alex.market.payment.config.PostgresTestconteinerConfig;
 import com.alex.market.payment.integration.TestDataLoader;
+import com.alex.market.payment.repository.AccountRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @ImportTestcontainers({PostgresTestconteinerConfig.class})
 @ActiveProfiles("test")
-class AccountRepositoryTest {
+class AccountRepositoryIT {
 
     @Autowired
     private AccountRepository accountRepository;

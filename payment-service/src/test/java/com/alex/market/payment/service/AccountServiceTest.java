@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @SpringJUnitConfig
 class AccountServiceTest {
@@ -38,8 +39,8 @@ class AccountServiceTest {
         Account foundedAccount = Account.builder().id(VALID_ID).build();
         AccountResponse resp = new AccountResponse();
         resp.accountId(VALID_ID);
-        Mockito.when(accountRepository.findById(VALID_ID)).thenReturn(Mono.just(foundedAccount));
-        Mockito.when(accountMapper.toAccountResponse(foundedAccount)).thenReturn(resp);
+        when(accountRepository.findById(VALID_ID)).thenReturn(Mono.just(foundedAccount));
+        when(accountMapper.toAccountResponse(foundedAccount)).thenReturn(resp);
 
         StepVerifier.create(accountService.getAccountById(VALID_ID))
                 .expectNext(resp)
@@ -48,7 +49,7 @@ class AccountServiceTest {
 
     @Test
     void getAccountById_shouldThrowAccountNotFoundExceptionFailed() {
-        Mockito.when(accountRepository.findById(INVALID_ID)).thenReturn(Mono.empty());
+        when(accountRepository.findById(INVALID_ID)).thenReturn(Mono.empty());
 
         StepVerifier.create(accountService.getAccountById(INVALID_ID))
                 .expectError(AccountNotFoundException.class)
