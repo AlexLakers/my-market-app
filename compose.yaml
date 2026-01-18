@@ -1,5 +1,5 @@
 services:
-  database:
+  database-mvc:
     image: postgres:17.0
     ports:
       - "${DB_HOST_PORT}:${DB_PORT}"
@@ -9,25 +9,42 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
       - POSTGRES_DB=${DB_NAME}
     volumes:
-      - db-data:/var/lib/postgresql/data
-
-
-  market-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: market
+      - db-data-mvc:/var/lib/postgresql/data
+      -
+  database-rest:
+    image: postgres:17.0
+    ports:
+      - "${DB_HOST_PORT}:${DB_PORT}"
     restart: always
     environment:
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - db-data-rest:/var/lib/postgresql/data
+
+  market-mvc:
+    build:
+      context: .
+      dockerfile: market-mvc/Dockerfile
+    image: market-mvc
+    restart: always
     ports:
       - "${APP_HOST_PORT}:${APP_PORT}"
     depends_on:
-      - database
-
+      - database-mvc
+      -
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    image: payment-service
+    restart: always
+    ports:
+      - "${APP_HOST_PORT}:${APP_PORT}"
+    depends_on:
+      - database-rest
+      -
 volumes:
-  db-data:
+  db-data-mvc:
+  db-data-rest:

@@ -1,0 +1,35 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="insert_transactions_data" author="alexlakers">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="transactions"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*)
+                                         FROM transactions</sqlCheck>
+        </preConditions>
+        <insert tableName="transactions">
+            <column name="account_id" value="1"/>
+            <column name="order_id" value="2"/>
+            <column name="amount" valueNumeric="100000"/>
+            <column name="status" value="SUCCESS"/>
+            <column name="type" value="PAYMENT"/>
+        </insert>
+
+        <insert tableName="transactions">
+            <column name="account_id" value="1"/>
+            <column name="order_id" value="3"/>
+            <column name="amount" valueNumeric="1000"/>
+            <column name="status" value="FAILED"/>
+            <column name="type" value="PAYMENT"/>
+            <column name="failure_reason" value="The amount must be positive"/>
+        </insert>
+
+
+        <rollback>
+            <delete tableName="transactions">
+                <where>order_id IN (2,3)</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

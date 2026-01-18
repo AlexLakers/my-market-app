@@ -1,0 +1,20 @@
+spring:
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    contexts: test
+
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    root: WARN
+    com.alex.payment: INFO
+    com.alex.payment.service: DEBUG
+    com.alex.payment.repository: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.springframework.transaction: WARN
+  file:
+    name: ${java.io.tmpdir}/payment-test.log
