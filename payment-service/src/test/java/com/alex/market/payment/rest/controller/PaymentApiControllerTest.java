@@ -1,6 +1,9 @@
 package com.alex.market.payment.rest.controller;
 
 import com.alex.market.payment.api.dto.AccountResponse;
+import com.alex.market.payment.api.dto.PaymentRequest;
+import com.alex.market.payment.api.dto.PaymentResponse;
+import com.alex.market.payment.api.dto.TransactionStatus;
 import com.alex.market.payment.exception.AccountNotFoundException;
 import com.alex.market.payment.exception.ErrorResponse;
 import com.alex.market.payment.exception.handler.GlobalExceptionHandler;
@@ -52,7 +55,7 @@ class PaymentApiControllerTest {
     @Test
     void getAccountById_shouldSet404StatusAndErrorMessageBody() {
         Mockito.when(accountService.getAccountById(INVALID_ID)).thenReturn(Mono.error(new AccountNotFoundException(INVALID_ID)));
-        ErrorResponse error=new ErrorResponse(HttpStatus.NOT_FOUND.value(),"The account with id: -1 is not found");
+        ErrorResponse error = new ErrorResponse(HttpStatus.NOT_FOUND.value(), "The account with id: -1 is not found");
 
         webClient.get()
                 .uri("/api/payments/accounts/{accountId}", INVALID_ID)
@@ -65,6 +68,21 @@ class PaymentApiControllerTest {
     }
 
     @Test
-    void processPayment() {
+    void processPayment_shouldSet200StatusAndReturnPaymentResponseJson() {
+        PaymentRequest request = new PaymentRequest(VALID_ID, VALID_ID,VALID_ID, 3000L);
+        PaymentResponse response = new PaymentResponse(VALID_ID, VALID_ID, VALID_ID, TransactionStatus.SUCCESS, 3000L);
+        Mockito.when(paymentService.processPaymentInTransaction(request)).thenReturn(Mono.just(response));
+
+        webClient.post()
+                .uri("/api/payments/pay")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(Mono.just(request), PaymentRequest.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody(PaymentResponse.class)
+                .value(json -> assertEquals(response, json));
     }
+
 }

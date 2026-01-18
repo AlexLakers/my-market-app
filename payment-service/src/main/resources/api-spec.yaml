@@ -37,6 +37,7 @@ paths:
           description: Счет не найден
         '5XX':
           description: Внутренняя ошибка сервера
+
   /api/payments/pay:
     post:
       summary: оплатить заказ
@@ -130,6 +131,7 @@ components:
           example: 20
         transactionId:
           type: integer
+          format: int64
           description: id транзакции оплаты
           example: 30
         status:
