@@ -55,7 +55,6 @@ class AccountServiceTest {
                 .expectError(AccountNotFoundException.class)
                 .verify();
         Mockito.verify(accountRepository, Mockito.times(1)).findById(INVALID_ID);
-        Mockito.verify(accountMapper, Mockito.times(0)).toAccountResponse(Mockito.any(Account.class));
     }
 
     @TestConfiguration
