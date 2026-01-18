@@ -19,8 +19,8 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class PaymentServiceImpl implements PaymentService {
 
-    private final Long GENERAL_ACCOUNT_ID = 1L;
-    private final Long SYSTEM_FAILED_ACCOUNT_ID = 0L;
+    private final static Long GENERAL_ACCOUNT_ID = 1L;
+    private final static Long SYSTEM_FAILED_ACCOUNT_ID = 0L;
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
@@ -54,7 +54,7 @@ public class PaymentServiceImpl implements PaymentService {
                                 paymentRequest.getAmount(), paymentRequest.getOrderId());
                         return createFailedTransaction(
                                 paymentRequest,
-                                String.format("Amount must be positive, account with id: %d ", GENERAL_ACCOUNT_ID),
+                                String.format("Amount must be positive and account with id: %d", GENERAL_ACCOUNT_ID),
                                 TransactionType.PAYMENT
                         ).map(transactionMapper::toPaymentResponse);
                     }
