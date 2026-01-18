@@ -1,8 +1,10 @@
 package com.alex.market.payment.exception;
 
+import org.springframework.http.HttpStatus;
+
 public class AccountNotFoundException extends RuntimeException{
         public AccountNotFoundException(Long id) {
-            this("The account with id: {%d} is not found".formatted(id));
+            this("The account with id: %d is not found".formatted(id));
         }
         public AccountNotFoundException(Long id,Throwable cause) {
             this("The account with id: {%d} is not found".formatted(id),cause);
