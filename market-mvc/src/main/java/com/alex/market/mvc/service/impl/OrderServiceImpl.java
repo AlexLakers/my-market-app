@@ -38,7 +38,7 @@ public class OrderServiceImpl implements OrderService {
 
         return cartService.getItemsCartWithCounts(cartItemsCounts)
                 .flatMap(itemsCount -> {
-                    log.debug("Getting {} positions items for order заказа", itemsCount != null ? itemsCount.size() : 0);
+                    log.debug("Getting {} positions items for order", itemsCount != null ? itemsCount.size() : 0);
 
                     Long totalSum = itemsCount.entrySet().stream()
                             .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();

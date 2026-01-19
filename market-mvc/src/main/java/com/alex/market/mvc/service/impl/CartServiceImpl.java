@@ -1,6 +1,10 @@
 package com.alex.market.mvc.service.impl;
 
+import com.alex.market.mvc.client.api.DefaultApi;
+import com.alex.market.mvc.client.dto.AccountResponse;
+import com.alex.market.mvc.client.dto.PaymentResponse;
 import com.alex.market.mvc.dto.input.CartChangeDto;
+import com.alex.market.mvc.dto.output.AccountBalanceDto;
 import com.alex.market.mvc.dto.output.CartDto;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
@@ -16,9 +20,11 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,7 +34,10 @@ public class CartServiceImpl implements CartService {
 
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
+    private final DefaultApi paymentApi;
 
+    private final static Duration PAYMENT_TIMEOUT = Duration.ofSeconds(5);
+    private final static Long GENERAL_ACCOUNT_ID = 1L;
 
     private Integer incrementItemCount(Long itemId, Map<Long, Integer> cartItemsCount) {
         return cartItemsCount.merge(itemId, 1, Integer::sum);
@@ -74,19 +83,81 @@ public class CartServiceImpl implements CartService {
 
         if (cartItemsCount == null || cartItemsCount.isEmpty()) {
             log.debug("Empty cart, returning empty DTO");
-            return Mono.just(new CartDto(List.of(), 0L));
+            return Mono.just(new CartDto(List.of(), 0L, null));
         }
 
-        return getItemsByCart(cartItemsCount)
-                .collectList()
-                .flatMap(items -> buildCartDto(items, cartItemsCount))
-                .doOnSuccess(cart ->
-                        log.debug("Cart loaded with {} items, total: {}", cart.items().size(), cart.total())
+
+        Mono<AccountResponse> accountResponseMono = paymentApi.getAccountById(GENERAL_ACCOUNT_ID)
+                .timeout(PAYMENT_TIMEOUT)
+                .onErrorResume(e -> {
+                            log.warn("Payment service is unavailable: {}", e.getMessage());
+                            return Mono.empty();
+                        }
                 )
-                .doOnError(error ->
-                        log.error("Failed to load cart", error)
-                );
+                .doOnNext(acc ->
+                        log.info("Received account: {}", acc));
+
+
+        Mono<List<Item>> itemsMono = getItemsByCart(cartItemsCount).collectList();
+
+
+        return itemsMono.zipWith(accountResponseMono.defaultIfEmpty(createEmptyAccount()))
+                .flatMap(tuple -> {
+                    List<Item> items = tuple.getT1();
+                    AccountResponse accResp = tuple.getT2();
+
+                    return calculateCartDto(items, cartItemsCount, accResp);
+                })
+                .doOnSuccess(cartDto ->
+                        log.info("Successfully calculated cart: {}", cartDto)
+                )
+                .doOnError(error -> log.error("Failed to calculate cart", error));
     }
+
+    private AccountResponse createEmptyAccount() {
+        AccountResponse empty = new AccountResponse();
+        empty.setBalance(null);
+        return empty;
+    }
+
+    private Mono<CartDto> calculateCartDto(List<Item> items, Map<Long, Integer> cartItemsCount, AccountResponse accountResponse) {
+
+
+        List<ItemDto> itemDtos = items.stream()
+                .map(item -> itemMapper.toDto(item, cartItemsCount))
+                .collect(Collectors.toList());
+
+        Long totalPrice = itemDtos.stream()
+                .mapToLong(dto -> {
+                    Integer count = cartItemsCount.getOrDefault(dto.id(), 0);
+                    return count * dto.price();
+                })
+                .sum();
+
+
+        AccountBalanceDto accountBalanceDto = createAccountBalanceDto(accountResponse, totalPrice);
+
+
+        return Mono.just(new CartDto(itemDtos, totalPrice, accountBalanceDto));
+    }
+
+    private AccountBalanceDto createAccountBalanceDto(AccountResponse accountResponse, Long total) {
+        if (accountResponse.getBalance() == null) {
+            return new AccountBalanceDto(
+                    accountResponse.getAccountId(),
+                    accountResponse.getBalance(),
+                    false,
+                    false
+            );
+        }
+        return new AccountBalanceDto(
+                accountResponse.getAccountId(),
+                accountResponse.getBalance(),
+                accountResponse.getBalance().compareTo(total) >= 0,
+                true
+        );
+    }
+
 
     @Override
     public Mono<Map<Item, Integer>> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount) {
@@ -105,33 +176,6 @@ public class CartServiceImpl implements CartService {
 
     private Flux<Item> getItemsByCart(Map<Long, Integer> cartItemsCount) {
         return itemRepository.findAllById(cartItemsCount.keySet());
-    }
-
-    private Mono<CartDto> buildCartDto(List<Item> items, Map<Long, Integer> cartItemsCount) {
-        log.debug("Building cart from {} items", items.size());
-
-        return Flux.fromIterable(items)
-                .map(item -> {
-                    Integer count = cartItemsCount.getOrDefault(item.getId(), 0);
-                    ItemDto dto = itemMapper.toDto(item, cartItemsCount);
-                    long itemTotal = item.getPrice() * count;
-                    return Tuples.of(dto, itemTotal);
-                })
-                .collectList()
-                .map(list -> {
-                    List<ItemDto> itemDtos = list.stream()
-                            .map(Tuple2::getT1)
-                            .collect(Collectors.toList());
-                    Long totalPrice = list.stream()
-                            .mapToLong(Tuple2::getT2)
-                            .sum();
-
-                    log.debug("Cart built: {} items, total {}", itemDtos.size(), totalPrice);
-                    return new CartDto(itemDtos, totalPrice);
-                })
-                .doOnError(error ->
-                        log.error("Failed to build cart", error)
-                );
     }
 }
 
