@@ -28,10 +28,10 @@ public class TestDataLoader {
                 """).fetch().rowsUpdated().block();
 
         databaseClient.sql("""
-                INSERT INTO orders (id, total_sum) VALUES
-                (1000, 1000),
-                (1001, 50000),
-                (1002, 45000)
+                INSERT INTO orders (id, total_sum,status) VALUES
+                (1000, 1000,'PAID'),
+                (1001, 50000,'PAID'),
+                (1002, 45000,'PAID')
                 """).fetch().rowsUpdated().block();
 
         databaseClient.sql("""

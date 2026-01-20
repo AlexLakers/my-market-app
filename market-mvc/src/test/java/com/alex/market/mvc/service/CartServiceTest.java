@@ -1,6 +1,9 @@
 package com.alex.market.mvc.service;
 
+import com.alex.market.mvc.client.api.DefaultApi;
+import com.alex.market.mvc.client.dto.AccountResponse;
 import com.alex.market.mvc.dto.input.CartChangeDto;
+import com.alex.market.mvc.dto.output.AccountBalanceDto;
 import com.alex.market.mvc.dto.output.CartDto;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
@@ -14,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -36,14 +40,15 @@ import static org.mockito.Mockito.when;
 class CartServiceTest {
     private static final Long VALID_ID = 1L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
-    Map<Long,Integer> cartItemsCount;
+    Map<Long, Integer> cartItemsCount;
 
     @BeforeEach
     void setUp() {
         cartItemsCount = new HashMap<>();
-        cartItemsCount.put(VALID_ID,2);
+        cartItemsCount.put(VALID_ID, 2);
 
     }
+
     @Autowired
     private ItemRepository itemRepository;
 
@@ -53,36 +58,44 @@ class CartServiceTest {
     @Autowired
     private ItemMapper itemMapper;
 
+    @Autowired
+    private DefaultApi paymentApi;
+
     @ParameterizedTest
     @CsvSource({"PLUS, 3",
             "MINUS, 1",
     })
     void changeItemCount_shouldReturnIncrementCountItemInCartSuccess(CartAction action, Integer expectedCount) {
-        CartChangeDto givenDto=new CartChangeDto(VALID_ID, action,cartItemsCount);
+        CartChangeDto givenDto = new CartChangeDto(VALID_ID, action, cartItemsCount);
         when(itemRepository.existsById(VALID_ID)).thenReturn(Mono.just(true));
 
-        Integer actualCount=cartService.changeItemCount(givenDto).block();
+        Integer actualCount = cartService.changeItemCount(givenDto).block();
 
         assertThat(actualCount).isNotNull().isEqualTo(expectedCount);
     }
 
     @Test
     void changeItemCount_shouldThrowItemNotFoundException_whenItemIdNotExistsFail() {
-        CartChangeDto givenDto=new CartChangeDto(INVALID_ID, CartAction.PLUS,cartItemsCount);
+        CartChangeDto givenDto = new CartChangeDto(INVALID_ID, CartAction.PLUS, cartItemsCount);
         when(itemRepository.existsById(INVALID_ID)).thenReturn(Mono.just(false));
 
         assertThatExceptionOfType(ItemNotFoundException.class)
-                .isThrownBy(()->cartService.changeItemCount(givenDto).block());
+                .isThrownBy(() -> cartService.changeItemCount(givenDto).block());
     }
 
     @Test
     void getItemsCartWithTotal_shouldReturnCartDtoWithTotalCountSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
-        Item expectedItem= new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
-        CartDto expectedDto=new CartDto(List.of(itemDto),2000L);
+        Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
+        AccountBalanceDto expectedBalanceDto = new AccountBalanceDto(VALID_ID, 3000L, true, true);
+        CartDto expectedDto = new CartDto(List.of(itemDto), 2000L, expectedBalanceDto);
+        AccountResponse expectedAccountResponse = new AccountResponse();
+        expectedAccountResponse.setAccountId(VALID_ID);
+        expectedAccountResponse.setBalance(3000L);
         when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(Flux.fromIterable(List.of(expectedItem)));
+        when(paymentApi.getAccountById(VALID_ID)).thenReturn(Mono.just(expectedAccountResponse));
 
-        CartDto actualDto=cartService.getItemsCartWithTotal(cartItemsCount).block();
+        CartDto actualDto = cartService.getItemsCartWithTotal(cartItemsCount).block();
 
         assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
@@ -105,8 +118,13 @@ class CartServiceTest {
         }
 
         @Bean
+        public DefaultApi paymentApi() {
+            return Mockito.mock(DefaultApi.class);
+        }
+
+        @Bean
         public CartService cartService() {
-            return new CartServiceImpl(itemRepository(),itemMapper());
+            return new CartServiceImpl(itemRepository(), itemMapper(), paymentApi());
         }
     }
 }

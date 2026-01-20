@@ -37,15 +37,12 @@ class CartControllerIT extends BaseIntegrationTest {
         cartItemsCount.put(VALID_ID, 2);
     }
 
-    @Autowired
-    private CartService cartService;
 
     @Autowired
     private WebTestClient webTestClient;
 
     @Test
     void changeCartItemCountForCartPage_shouldRedirectToGetItemsSuccess() {
-        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
 
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
