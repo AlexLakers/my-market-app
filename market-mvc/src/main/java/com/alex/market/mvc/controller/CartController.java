@@ -1,5 +1,6 @@
 package com.alex.market.mvc.controller;
 
+import com.alex.market.mvc.client.api.DefaultApi;
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.input.InputFormCart;
 import com.alex.market.mvc.dto.output.CartDto;
@@ -27,11 +28,11 @@ public class CartController {
     @GetMapping("/items")
     public Mono<Rendering> getItemsCartWithTotal(@SessionAttribute Map<Long, Integer> cart) {
         log.info("---endpoint 'getItemsCartWithTotal' with cart:{} from session was started---", cart);
-
         return cartService.getItemsCartWithTotal(cart)
                 .map(cartDto -> Rendering.view("cart")
                         .modelAttribute("items", cartDto.items())
                         .modelAttribute("total", cartDto.total())
+                        .modelAttribute("accountBalance",cartDto.accountBalance())
                         .status(HttpStatus.OK)
                         .build());
     }
