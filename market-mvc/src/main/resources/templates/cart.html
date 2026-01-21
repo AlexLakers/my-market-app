@@ -70,7 +70,7 @@
                             </small>
                         </div>
                     </div>
-
+                    <button th:disabled="${not accountBalance.isPaymentAvailable() or not accountBalance.isEnough()}" class="btn btn-warning ms-auto">Купить</button>
                 </div>
             </form>
         </div>
