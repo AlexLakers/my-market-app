@@ -61,7 +61,38 @@ public class PaymentApiClientServiceImpl implements PaymentApiClientService {
         return new PaymentDto(status, orderId, null, "");
     }
 
+    @Override
+    public Mono<AccountBalanceDto> getAccountById(Long accountId) {
 
+        return paymentApi.getAccountById(accountId)
+                .timeout(PAYMENT_TIMEOUT)
+                .map(response -> {
+                    log.info("Account with id: {} received with balance: {}", response.getAccountId(), response.getBalance());
+
+                    return createAccountDto(response);
+                })
+                .onErrorResume(WebClientResponseException.class, e -> {
+                    log.error("Account service error, HTTP-status: {}, body: {}",
+                            e.getStatusCode().value(), e.getResponseBodyAsString());
+
+                    return Mono.just(createErrorAccountDto(accountId, PaymentApiStatus.SERVICE_ERROR));
+                })
+                .onErrorResume(Exception.class, e -> {
+                    log.error("Account service is unavailable: {}", e.getMessage());
+
+                    return Mono.just(createErrorAccountDto(accountId, PaymentApiStatus.NETWORK_ERROR));
+                });
+    }
+
+    private AccountBalanceDto createErrorAccountDto(Long accountId, PaymentApiStatus errorStatus) {
+        return new AccountBalanceDto(accountId, 0L, errorStatus);
+    }
+
+    private AccountBalanceDto createAccountDto(AccountResponse accountResponse) {
+        return new AccountBalanceDto(accountResponse.getAccountId(),
+                accountResponse.getBalance(),
+                PaymentApiStatus.SUCCESS);
+    }
 
 
 }
