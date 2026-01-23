@@ -1,8 +1,10 @@
 package com.alex.market.mvc.service.impl;
 
 
+import com.alex.market.mvc.client.dto.PaymentRequest;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.dto.output.OrderDto;
+import com.alex.market.mvc.dto.output.OrderPaymentDto;
 import com.alex.market.mvc.exception.OrderNotFoundException;
 import com.alex.market.mvc.mapper.ItemMapper;
 import com.alex.market.mvc.model.Item;
@@ -14,6 +16,7 @@ import com.alex.market.mvc.repository.OrderRepository;
 import com.alex.market.mvc.repository.projection.OrderItemsDetails;
 import com.alex.market.mvc.service.CartService;
 import com.alex.market.mvc.service.OrderService;
+import com.alex.market.mvc.service.PaymentApiClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,13 +31,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderServiceImpl implements OrderService {
+
+    private static final Long GENERAL_ACCOUNT_ID = 1L;
+    private static final Long GENERAL_USER_ID = 1L;
+
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ItemMapper itemMapper;
     private final CartService cartService;
+    private final PaymentApiClientService paymentApiClientService;
 
-    public Mono<Long> createOrder(Map<Long, Integer> cartItemsCounts) {
+    public Mono<OrderPaymentDto> createAndProcessOrder(Map<Long, Integer> cartItemsCounts) {
         log.info("Creating new order.Items in cart: {}", cartItemsCounts != null ? cartItemsCounts.size() : 0);
+
 
         return cartService.getItemsCartWithCounts(cartItemsCounts)
                 .flatMap(itemsCount -> {
@@ -42,10 +51,10 @@ public class OrderServiceImpl implements OrderService {
 
                     Long totalSum = itemsCount.entrySet().stream()
                             .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
-                    log.info("Total sum or order: {}", totalSum);
+                    log.info("Total sum of order: {}", totalSum);
 
                     Order order = new Order();
-                    order.setStatus(OrderStatus.PAID);
+                    order.setStatus(OrderStatus.PENDING);
                     order.setTotalSum(totalSum);
                     return orderRepository.save(order)
                             .flatMap(savedOrder -> {
@@ -55,15 +64,21 @@ public class OrderServiceImpl implements OrderService {
                                         .map(entry -> createOrderItem(entry, savedOrder.getId()))
                                         .collect(Collectors.toList());
 
-                                log.info("Created {} positions for order with id={}", orderItems.size(), savedOrder.getId());
+                                log.info("Created {} positions for order with id: {}", orderItems.size(), savedOrder.getId());
                                 return orderItemRepository.saveAll(orderItems)
-                                        .then(Mono.just(savedOrder.getId()))
+                                        .then(Mono.just(savedOrder/*.getId()*/))
                                         .doOnSuccess(id ->
                                                 log.info("Order created with id: {}", id)
                                         )
                                         .doOnError(error ->
                                                 log.error("Failed to create order", error)
-                                        );
+                                        ).flatMap(this::processOrder)
+                                        .map(processedOrder -> new OrderPaymentDto(
+                                                processedOrder.getId(),
+                                                processedOrder.getStatus().name()))
+                                        .doOnNext(dto->
+                                                log.info("Order with id: {} is processed with status: {}",
+                                                        dto.orderId(), dto.orderStatus()));
                             });
                 });
     }
@@ -76,6 +91,47 @@ public class OrderServiceImpl implements OrderService {
                 .count(entry.getValue())
                 .build();
     }
+
+    private PaymentRequest createPaymentRequest(Order savedOrder) {
+        PaymentRequest paymentRequest = new PaymentRequest();
+        paymentRequest.setOrderId(savedOrder.getId());
+        paymentRequest.setAccountId(GENERAL_ACCOUNT_ID);
+        paymentRequest.amount(savedOrder.getTotalSum());
+        paymentRequest.setUserId(GENERAL_USER_ID);
+        return paymentRequest;
+    }
+
+    private Mono<Order> processOrder(Order savedOrder) {
+        PaymentRequest paymentRequest = createPaymentRequest(savedOrder);
+
+        return paymentApiClientService.processPaymentInTransaction(paymentRequest)
+                .flatMap(paymentResult -> {
+
+                    OrderStatus orderStatus = switch (paymentResult.status()) {
+
+                        case SUCCESS -> {
+                            log.info("Payment successful for order with id: {}", savedOrder.getId());
+
+                            yield OrderStatus.PAID;
+                        }
+
+                        case BUSINESS_FAIL -> {
+                            log.warn("Payment failed for reason: {} for order with id: {}", paymentResult.failureReason(), savedOrder.getId());
+
+                            yield OrderStatus.FAILED;
+                        }
+
+                        case NETWORK_ERROR, SERVICE_ERROR -> OrderStatus.PENDING;
+                    };
+
+                    savedOrder.setStatus(orderStatus);
+
+                    return orderRepository.save(savedOrder)
+                            .doOnNext(result ->
+                                    log.debug("Order with id: {} status updated to status: {}", savedOrder.getId(), orderStatus));
+                });
+    }
+
 
     @Override
     public Flux<OrderDto> findAllPaidOrders() {
