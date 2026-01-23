@@ -10,6 +10,7 @@ import com.alex.market.mvc.model.OrderStatus;
 import com.alex.market.mvc.service.OrderService;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,11 +48,12 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-
-@EnableWireMock(@ConfigureWireMock(name = "payment-service", port = 8081))
+@EnableWireMock(@ConfigureWireMock(name = "payment-service", port = 0))
+@TestPropertySource(properties = {"market.upload.payment-service-url=http://localhost:${wiremock.server.port}"})
 class OrderControllerIT extends BaseIntegrationTest {
     private static final Long VALID_ID = 1000L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
+
 
     @InjectWireMock("payment-service")
     private WireMockServer mockPaymentService;
@@ -117,7 +119,6 @@ class OrderControllerIT extends BaseIntegrationTest {
     @Test
     void createAndProcessOrder_shouldCreateAndProcessOrderRedirectToNewOrderPage_Success() {
         final long newSavedId = 1L;
-        mockWebFilterWithCount(VALID_ID, 2);
         mockPaymentService.stubFor(post("/api/payments/pay")
                 .willReturn(okJson("{\"accountId\":1,\"orderId\":1,\"transactionId\":30,\"status\":\"SUCCESS\",\"amount\":1000}")));
 
@@ -139,19 +140,5 @@ class OrderControllerIT extends BaseIntegrationTest {
                 });
     }
 
-
-    void mockWebFilterWithCount(Long id, Integer count) {
-        Map<Long, Integer> cartItemsCount = new HashMap<>();
-        cartItemsCount.put(id, count);
-        CartWebFilter mockWebFilter = Mockito.mock(CartWebFilter.class);
-        when(mockWebFilter.filter(any(ServerWebExchange.class), any(WebFilterChain.class)))
-                .thenAnswer(invocation -> {
-                    ServerWebExchange exchange = invocation.getArgument(0);
-                    WebFilterChain chain = invocation.getArgument(1);
-                    return exchange.getSession()
-                            .doOnNext(session -> session.getAttributes().put("cart", cartItemsCount))
-                            .then(chain.filter(exchange));
-                });
-    }
 
 }

@@ -77,7 +77,6 @@
                         </div>
                     </div>
 
-                    <!-- Одна кнопка -->
                     <div th:if="${paymentOrderStatus == null and accountBalanceStatus == 'ENOUGH'}">
                         <form th:action="@{/cart/buy}" method="post">
                             <button type="submit" class="btn btn-warning ms-auto">

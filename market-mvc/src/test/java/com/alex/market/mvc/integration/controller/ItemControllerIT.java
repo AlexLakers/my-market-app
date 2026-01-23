@@ -14,18 +14,16 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.wiremock.spring.ConfigureWireMock;
+import org.wiremock.spring.EnableWireMock;
+
 import java.util.HashMap;
 import java.util.Map;
+
 class ItemControllerIT extends BaseIntegrationTest {
 
     @Autowired
     private WebTestClient testClient;
-
-    @Autowired
-    private ItemService itemService;
-
-    @Autowired
-    private ImageService imageService;
 
     private Map<Long, Integer> cartItemsCount;
 

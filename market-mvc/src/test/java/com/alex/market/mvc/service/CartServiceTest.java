@@ -1,11 +1,10 @@
 package com.alex.market.mvc.service;
 
-import com.alex.market.mvc.client.api.DefaultApi;
-import com.alex.market.mvc.client.dto.AccountResponse;
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.output.AccountBalanceDto;
 import com.alex.market.mvc.dto.output.CartDto;
 import com.alex.market.mvc.dto.output.ItemDto;
+import com.alex.market.mvc.dto.output.PaymentApiStatus;
 import com.alex.market.mvc.exception.ItemNotFoundException;
 import com.alex.market.mvc.mapper.ItemMapper;
 import com.alex.market.mvc.mapper.ItemMapperImpl;
@@ -13,6 +12,7 @@ import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.model.Item;
 import com.alex.market.mvc.repository.ItemRepository;
 import com.alex.market.mvc.service.impl.CartServiceImpl;
+import com.alex.market.mvc.service.impl.PaymentApiClientServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +33,6 @@ import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +59,7 @@ class CartServiceTest {
     private ItemMapper itemMapper;
 
     @Autowired
-    private DefaultApi paymentApi;
+    private PaymentApiClientService paymentApiClientService;
 
     @ParameterizedTest
     @CsvSource({"PLUS, 3",
@@ -83,27 +83,27 @@ class CartServiceTest {
                 .isThrownBy(() -> cartService.changeItemCount(givenDto).block());
     }
 
-    @Test
-    void getItemsCartWithTotal_shouldReturnCartDtoWithTotalCountSuccess() {
+
+    @ParameterizedTest
+    @CsvSource({
+            "NETWORK_ERROR, ERROR",
+            "SERVICE_ERROR, ERROR",
+            "SUCCESS, ENOUGH",
+    })
+    void getItemsCartWithBalance_shouldReturnCartDtoWithBalanceStatus(String sourceStatus, String targetStatus) {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID));
         Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
-        AccountBalanceDto expectedBalanceDto = new AccountBalanceDto(VALID_ID, 3000L, true, true);
-        CartDto expectedDto = new CartDto(List.of(itemDto), 2000L, expectedBalanceDto);
-        AccountResponse expectedAccountResponse = new AccountResponse();
-        expectedAccountResponse.setAccountId(VALID_ID);
-        expectedAccountResponse.setBalance(3000L);
+        AccountBalanceDto expectedBalanceDto = new AccountBalanceDto(VALID_ID, 3000L, PaymentApiStatus.valueOf(sourceStatus));
+        CartDto expectedDto = new CartDto(List.of(itemDto), 2000L, targetStatus);
         when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(Flux.fromIterable(List.of(expectedItem)));
-        when(paymentApi.getAccountById(VALID_ID)).thenReturn(Mono.just(expectedAccountResponse));
+        when(paymentApiClientService.getAccountById(VALID_ID)).thenReturn(Mono.just(expectedBalanceDto));
 
-        CartDto actualDto = cartService.getItemsCartWithTotal(cartItemsCount).block();
+        StepVerifier.create(cartService.getItemsCartWithBalanceStatus(cartItemsCount))
+                .expectNext(expectedDto)
+                .verifyComplete();
 
-        assertThat(actualDto).isNotNull().isEqualTo(expectedDto);
     }
 
-
-    @Test
-    void getItemsCartWithCounts() {
-    }
 
     @TestConfiguration
     static class TestConfig {
@@ -118,13 +118,13 @@ class CartServiceTest {
         }
 
         @Bean
-        public DefaultApi paymentApi() {
-            return Mockito.mock(DefaultApi.class);
+        public PaymentApiClientService paymentApiService() {
+            return Mockito.mock(PaymentApiClientServiceImpl.class);
         }
 
         @Bean
         public CartService cartService() {
-            return new CartServiceImpl(itemRepository(), itemMapper(), paymentApi());
+            return new CartServiceImpl(itemRepository(), itemMapper(), paymentApiService());
         }
     }
 }

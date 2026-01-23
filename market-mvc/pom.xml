@@ -117,7 +117,7 @@
 		<dependency>
 			<groupId>org.wiremock.integrations</groupId>
 			<artifactId>wiremock-spring-boot</artifactId>
-		<!--	<version>3.9.0</version>-->
+			<version>3.9.0</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -133,11 +133,11 @@
 			<artifactId>jackson-databind-nullable</artifactId>
 			<version>0.2.6</version>
 		</dependency>
-		<dependency>
+		<!--<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
 			<version>5.4.2</version>
-		</dependency>
+		</dependency>-->
 	</dependencies>
 
 	<build>
@@ -185,7 +185,6 @@
 							<configOptions>
 								<hideGenerationTimestamp>true</hideGenerationTimestamp>
 								<interfaceOnly>true</interfaceOnly>
-					<!--			<useSpringBoot3>true</useSpringBoot3>-->
 								<library>webclient</library>
 								<openApiNullable>false</openApiNullable>
 								<useJakartaEe>true</useJakartaEe>
@@ -195,22 +194,7 @@
 								<serializableModel>true</serializableModel>
 								<dateLibrary>java8</dateLibrary>
 								<java8>true</java8>
-							<!--	<library>spring-boot</library>-->
 							</configOptions>
-						<!--	<configOptions>
-								<hideGenerationTimestamp>true</hideGenerationTimestamp>
-								<requestMappingMode>controller</requestMappingMode>
-								<interfaceOnly>true</interfaceOnly>
-								<useSpringBoot3>true</useSpringBoot3>
-								<useJakartaEe>true</useJakartaEe>
-								<reactive>true</reactive>
-								<useTags>true</useTags>
-								<openApiNullable>false</openApiNullable>
-								<serializableModel>true</serializableModel>
-								<dateLibrary>java8</dateLibrary>
-								<java8>true</java8>
-								<library>spring-boot</library>
-							</configOptions>-->
 						</configuration>
 					</execution>
 				</executions>

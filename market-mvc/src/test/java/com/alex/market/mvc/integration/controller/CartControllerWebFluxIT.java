@@ -6,12 +6,12 @@ import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.output.AccountBalanceDto;
 import com.alex.market.mvc.dto.output.CartDto;
 import com.alex.market.mvc.dto.output.ItemDto;
+import com.alex.market.mvc.dto.output.PaymentApiStatus;
 import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.service.CartService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
@@ -53,10 +53,10 @@ class CartControllerWebFluxIT {
     void changeCartItemCountForCartPage_shouldRedirectToGetItemsSuccess() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
-        AccountBalanceDto accountBalanceDto=new AccountBalanceDto(VALID_ID,3000L,true,true);
-        CartDto expectedDto = new CartDto(List.of(itemDto), 2000L,accountBalanceDto);
+        AccountBalanceDto accountBalanceDto=new AccountBalanceDto(VALID_ID,3000L, PaymentApiStatus.SUCCESS);
+        CartDto expectedDto = new CartDto(List.of(itemDto), 2000L,PaymentApiStatus.SUCCESS.name());
         when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(itemDto.count()));
-        when(cartService.getItemsCartWithTotal(cartItemsCount)).thenReturn(Mono.just(expectedDto));
+        when(cartService.getItemsCartWithBalanceStatus(cartItemsCount)).thenReturn(Mono.just(expectedDto));
 
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
