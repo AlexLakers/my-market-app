@@ -55,22 +55,36 @@
                 <div class="hstack gap-3">
                     <h2 th:text="'Итого: '+${total}+' руб.'"/>
 
-                    <div th:if="${!accountBalance.isPaymentAvailable()}"
-                         class="alert alert-danger mb-3">
-                        <i class="bi bi-exclamation-triangle-fill"></i>
-                        Сервис платежей временно недоступен. Оформление заказа невозможно.
-                    </div>
 
-                    <div th:if="${accountBalance.isPaymentAvailable() and not accountBalance.isEnough()}"
-                         class="alert alert-warning border border-warning text-dark mb-3">
-                        Недостаточно средств на счете.
-                        <div th:if="${accountBalance.balance()}">
-                            <small>
-                                Текущий баланс: <strong th:text="${accountBalance.balance()}">0</strong> руб.
-                            </small>
+                    <div th:if="${paymentOrderStatus == 'BUSINESS_FAIL'}">
+                        <div class="alert alert-danger mb-3">
+                            Платеж отклонен. Пополните баланс или попробуйте позже.
                         </div>
                     </div>
-                    <button th:disabled="${not accountBalance.isPaymentAvailable() or not accountBalance.isEnough()}" class="btn btn-warning ms-auto">Купить</button>
+                    <div th:if="${paymentOrderStatus == 'PENDING'}">
+                        <div class="alert alert-danger mb-3">
+                            Платежная система временно недоступна. Попробуйте позже.
+                        </div>
+                    </div>
+                    <div th:if="${paymentOrderStatus == null and accountBalanceStatus == 'ERROR'}">
+                        <div class="alert alert-danger mb-3">
+                            Не удалось проверить баланс. Сервис не доступен.
+                        </div>
+                    </div>
+                    <div th:if="${paymentOrderStatus == null and accountBalanceStatus == 'NOT_ENOUGH'}">
+                        <div class="alert alert-warning mb-3">
+                            Недостаточно средств. Пополните баланс.
+                        </div>
+                    </div>
+
+                    <!-- Одна кнопка -->
+                    <div th:if="${paymentOrderStatus == null and accountBalanceStatus == 'ENOUGH'}">
+                        <form th:action="@{/cart/buy}" method="post">
+                            <button type="submit" class="btn btn-warning ms-auto">
+                                Купить
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </form>
         </div>
