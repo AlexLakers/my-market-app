@@ -114,6 +114,12 @@
 			<artifactId>junit-platform-launcher</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.wiremock.integrations</groupId>
+			<artifactId>wiremock-spring-boot</artifactId>
+		<!--	<version>3.9.0</version>-->
+			<scope>test</scope>
+		</dependency>
 
 		<!--OpenApi dependencies-->
 		<dependency>

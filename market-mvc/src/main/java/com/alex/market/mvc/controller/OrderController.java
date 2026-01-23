@@ -1,5 +1,6 @@
 package com.alex.market.mvc.controller;
 
+import com.alex.market.mvc.model.OrderStatus;
 import com.alex.market.mvc.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,10 +47,14 @@ public class OrderController {
     public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
         log.info("---endpoint 'createOrder' with cart:{} from session was started---", cart);
 
-        return orderService.createOrder(cart)
-                .map(id -> {
-                    cart.clear();
-                    return "redirect:/orders/" + id + "?newOrder=true";
+        //TODO
+        return orderService.createAndProcessOrder(cart)
+                .map(dto -> {
+                    if (dto.orderStatus().equals(OrderStatus.PAID.name())) {
+                        cart.clear();
+                        return "redirect:/orders/" + dto.orderId() + "?newOrder=true";
+                    }
+                    else return "redirect:/cart/items" + "?paymentOrderStatus=" + dto.orderStatus();
                 });
     }
 }
