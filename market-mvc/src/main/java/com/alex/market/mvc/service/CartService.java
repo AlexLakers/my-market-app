@@ -10,7 +10,7 @@ import java.util.Map;
 public interface CartService {
     Mono<Integer> changeItemCount(CartChangeDto cartChangeDto);
 
-    Mono<CartDto> getItemsCartWithTotal(Map<Long, Integer> cartItemsCount);
+    Mono<CartDto> getItemsCartWithBalanceStatus(Map<Long, Integer> cartItemsCount);
 
     Mono<Map<Item, Integer>> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount);
 

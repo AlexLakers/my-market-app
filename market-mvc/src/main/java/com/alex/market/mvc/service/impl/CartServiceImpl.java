@@ -1,6 +1,7 @@
 package com.alex.market.mvc.service.impl;
 
 import com.alex.market.mvc.dto.input.CartChangeDto;
+import com.alex.market.mvc.dto.output.AccountBalanceDto;
 import com.alex.market.mvc.dto.output.CartDto;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
@@ -8,15 +9,13 @@ import com.alex.market.mvc.mapper.ItemMapper;
 import com.alex.market.mvc.model.Item;
 import com.alex.market.mvc.repository.ItemRepository;
 import com.alex.market.mvc.service.CartService;
+import com.alex.market.mvc.service.PaymentApiClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,7 +27,8 @@ public class CartServiceImpl implements CartService {
 
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
-
+    private final PaymentApiClientService paymentApiClientService;
+    private final static Long GENERAL_ACCOUNT_ID = 1L;
 
     private Integer incrementItemCount(Long itemId, Map<Long, Integer> cartItemsCount) {
         return cartItemsCount.merge(itemId, 1, Integer::sum);
@@ -69,24 +69,66 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public Mono<CartDto> getItemsCartWithTotal(Map<Long, Integer> cartItemsCount) {
+    public Mono<CartDto> getItemsCartWithBalanceStatus(Map<Long, Integer> cartItemsCount) {
         log.info("Getting cart with total, items count: {}", cartItemsCount != null ? cartItemsCount.size() : 0);
 
         if (cartItemsCount == null || cartItemsCount.isEmpty()) {
             log.debug("Empty cart, returning empty DTO");
-            return Mono.just(new CartDto(List.of(), 0L));
+            return Mono.just(new CartDto(List.of(), 0L, ""));
         }
 
-        return getItemsByCart(cartItemsCount)
-                .collectList()
-                .flatMap(items -> buildCartDto(items, cartItemsCount))
-                .doOnSuccess(cart ->
-                        log.debug("Cart loaded with {} items, total: {}", cart.items().size(), cart.total())
+        Mono<AccountBalanceDto> accountBalanceDtoMono = paymentApiClientService.getAccountById(GENERAL_ACCOUNT_ID);
+
+
+        Mono<List<Item>> itemsMono = getItemsByCart(cartItemsCount).collectList();
+
+
+        return itemsMono.zipWith(accountBalanceDtoMono)
+                .flatMap(tuple -> {
+                    List<Item> items = tuple.getT1();
+                    AccountBalanceDto accDto = tuple.getT2();
+
+                    return calculateCartDto(items, cartItemsCount, accDto);
+                })
+                .doOnSuccess(cartDto ->
+                        log.info("Successfully calculated cart: {}", cartDto)
                 )
-                .doOnError(error ->
-                        log.error("Failed to load cart", error)
-                );
+                .doOnError(error -> log.error("Failed to calculate cart", error));
     }
+
+
+    private Mono<CartDto> calculateCartDto(List<Item> items, Map<Long, Integer> cartItemsCount, AccountBalanceDto accountBalanceDto) {
+
+
+        List<ItemDto> itemDtos = items.stream()
+                .map(item -> itemMapper.toDto(item, cartItemsCount))
+                .collect(Collectors.toList());
+
+        Long amount = itemDtos.stream()
+                .mapToLong(dto -> {
+                    Integer count = cartItemsCount.getOrDefault(dto.id(), 0);
+                    return count * dto.price();
+                })
+                .sum();
+
+        String accountBalanceStatus = switch (accountBalanceDto.status()) {
+
+            case SUCCESS -> isEnoughMoney(accountBalanceDto.balance(), amount) ? "ENOUGH" : "NOT_ENOUGH";
+
+            case SERVICE_ERROR, NETWORK_ERROR -> "ERROR";
+
+            default -> "UNKNOWN";
+
+        };
+
+
+        return Mono.just(new CartDto(itemDtos, amount, accountBalanceStatus));
+    }
+
+    private boolean isEnoughMoney(Long balance, Long amount) {
+        return balance.compareTo(amount) >= 0;
+    }
+
 
     @Override
     public Mono<Map<Item, Integer>> getItemsCartWithCounts(Map<Long, Integer> cartItemsCount) {
@@ -105,33 +147,6 @@ public class CartServiceImpl implements CartService {
 
     private Flux<Item> getItemsByCart(Map<Long, Integer> cartItemsCount) {
         return itemRepository.findAllById(cartItemsCount.keySet());
-    }
-
-    private Mono<CartDto> buildCartDto(List<Item> items, Map<Long, Integer> cartItemsCount) {
-        log.debug("Building cart from {} items", items.size());
-
-        return Flux.fromIterable(items)
-                .map(item -> {
-                    Integer count = cartItemsCount.getOrDefault(item.getId(), 0);
-                    ItemDto dto = itemMapper.toDto(item, cartItemsCount);
-                    long itemTotal = item.getPrice() * count;
-                    return Tuples.of(dto, itemTotal);
-                })
-                .collectList()
-                .map(list -> {
-                    List<ItemDto> itemDtos = list.stream()
-                            .map(Tuple2::getT1)
-                            .collect(Collectors.toList());
-                    Long totalPrice = list.stream()
-                            .mapToLong(Tuple2::getT2)
-                            .sum();
-
-                    log.debug("Cart built: {} items, total {}", itemDtos.size(), totalPrice);
-                    return new CartDto(itemDtos, totalPrice);
-                })
-                .doOnError(error ->
-                        log.error("Failed to build cart", error)
-                );
     }
 }
 

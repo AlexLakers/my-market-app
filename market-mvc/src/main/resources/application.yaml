@@ -39,6 +39,7 @@ market:
   upload:
     maxSize: ${MAX_IMAGE_SIZE:5242880}
     dir: ${MARKET_DIR:/home/alexlakers/my-market}
+    paymentServiceUrl: http://localhost:8081
 
 logging:
   level:

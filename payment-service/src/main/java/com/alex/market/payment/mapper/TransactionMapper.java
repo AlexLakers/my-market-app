@@ -9,11 +9,6 @@ import org.mapstruct.MappingConstants;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface TransactionMapper {
 
- /*   default PaymentResponse toPaymentResponseWithStatus(Transaction transaction){
-        toPaymentResponse(transaction);
-
-    }*/
-
     @Mapping(source = "id", target = "transactionId")
     PaymentResponse toPaymentResponse(Transaction transaction);
 

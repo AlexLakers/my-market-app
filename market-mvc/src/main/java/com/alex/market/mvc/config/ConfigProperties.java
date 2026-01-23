@@ -14,4 +14,5 @@ import java.nio.file.Path;
 public class ConfigProperties {
     private Path dir=Path.of("/my-market");
     private int maxSize=5242880;
+    private String paymentServiceUrl="http://localhost:8081";
 }

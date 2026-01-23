@@ -4,6 +4,7 @@ import com.alex.market.mvc.config.ConfigProperties;
 import com.alex.market.mvc.controller.OrderController;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.dto.output.OrderDto;
+import com.alex.market.mvc.dto.output.OrderPaymentDto;
 import com.alex.market.mvc.exception.OrderNotFoundException;
 import com.alex.market.mvc.service.OrderService;
 import org.junit.jupiter.api.Test;
@@ -86,7 +87,8 @@ class OrderControllerWebFluxIT {
 
     @Test
     void createOrder_shouldSet201AndRedirectToOrderPage() {
-        when(orderService.createOrder(anyMap())).thenReturn(Mono.just(VALID_ID));
+        OrderPaymentDto orderPaymentDto = new OrderPaymentDto(VALID_ID,"PAID");
+        when(orderService.createAndProcessOrder(anyMap())).thenReturn(Mono.just(orderPaymentDto));
 
         testClient.post()
                 .uri("/buy")
