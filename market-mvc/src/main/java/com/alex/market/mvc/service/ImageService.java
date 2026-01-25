@@ -5,4 +5,5 @@ import reactor.core.publisher.Mono;
 
 public interface ImageService {
     Mono<Void> updateImageByItemId(FilePart file, Long id);
+    Mono<byte[]> getImageByImgPath(String imgPath);
 }

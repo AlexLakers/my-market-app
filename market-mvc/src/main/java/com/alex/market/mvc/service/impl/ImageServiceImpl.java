@@ -1,6 +1,7 @@
 package com.alex.market.mvc.service.impl;
 
 import com.alex.market.mvc.config.ConfigProperties;
+import com.alex.market.mvc.exception.ImageGettingException;
 import com.alex.market.mvc.exception.ImageStorageException;
 import com.alex.market.mvc.exception.ItemNotFoundException;
 import com.alex.market.mvc.repository.ItemRepository;
@@ -16,7 +17,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -48,6 +51,47 @@ public class ImageServiceImpl implements ImageService {
                         log.error("Failed to update image for item with id: {}: {}", id, error.getMessage());
                     }
                 });
+    }
+
+    @Override
+    public Mono<byte[]> getImageByImgPath(String imgPath) {
+        if (imgPath == null || imgPath.isEmpty()) {
+            return Mono.empty();
+        }
+
+        return Mono.defer(() -> {
+            try {
+                Path baseDir = configProperties.getDir();
+                Path fullPath = baseDir.resolve(imgPath);
+
+                if (!Files.exists(fullPath)) {
+                    log.warn("Image file does not exist: {}", fullPath);
+                    return Mono.empty();
+                }
+
+                try (InputStream inputStream = Files.newInputStream(fullPath)) {
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    byte[] data = new byte[8192];
+                    int bytesRead;
+
+                    while ((bytesRead = inputStream.read(data)) != -1) {
+                        buffer.write(data, 0, bytesRead);
+                    }
+
+                    byte[] result = buffer.toByteArray();
+
+                    if (result.length == 0) {
+                        log.warn("Image file is empty: {}", fullPath);
+                        return Mono.empty();
+                    }
+
+                    return Mono.just(result);
+                }
+            } catch (IOException e) {
+                log.error("Failed to read image file: {}", imgPath, e);
+                return Mono.empty();
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     private Mono<String> saveImage(FilePart file, Long id) {
