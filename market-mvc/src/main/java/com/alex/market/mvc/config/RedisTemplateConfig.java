@@ -1,6 +1,7 @@
 package com.alex.market.mvc.config;
 
 import com.alex.market.mvc.cache.ItemCache;
+import com.alex.market.mvc.cache.PageInfoCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
@@ -30,7 +31,7 @@ public class RedisTemplateConfig {
     }
 
     @Bean
-    public ReactiveRedisTemplate<String, ItemCache> reactiveRedisTemplate(
+    public ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate(
             ReactiveRedisConnectionFactory connectionFactory) {
 
         RedisSerializationContext<String, ItemCache> serializationContext =
@@ -39,6 +40,20 @@ public class RedisTemplateConfig {
                         .value(new Jackson2JsonRedisSerializer<>(ItemCache.class))
                         .hashKey(StringRedisSerializer.UTF_8)
                         .hashValue(new Jackson2JsonRedisSerializer<>(ItemCache.class))
+                        .build();
+
+        return new ReactiveRedisTemplate<>(connectionFactory, serializationContext);
+    }
+    @Bean
+    public ReactiveRedisTemplate<String, PageInfoCache> pageInfoCacheReactiveRedisTemplate(
+            ReactiveRedisConnectionFactory connectionFactory) {
+
+        RedisSerializationContext<String, PageInfoCache> serializationContext =
+                RedisSerializationContext.<String, PageInfoCache>newSerializationContext()
+                        .key(StringRedisSerializer.UTF_8)
+                        .value(new Jackson2JsonRedisSerializer<>(PageInfoCache.class))
+                        .hashKey(StringRedisSerializer.UTF_8)
+                        .hashValue(new Jackson2JsonRedisSerializer<>(PageInfoCache.class))
                         .build();
 
         return new ReactiveRedisTemplate<>(connectionFactory, serializationContext);
