@@ -40,7 +40,7 @@ public class ItemController {
         log.info("---endpoint 'getItems' with input params: search={},sort={},cart={},pageNumber={},pageSize={} was started---",
                 search, sort, cart, pageNumber, pageSize);
 
-        return itemService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart))
+        return itemCacheService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart))
                 .map(pageItemsDto -> Rendering.view("items")
                         .modelAttribute("items", pageItemsDto.items())
                         .modelAttribute("search", pageItemsDto.search())
@@ -99,7 +99,7 @@ public class ItemController {
 
         log.info("---endpoint 'getItem' with id: {} and cart: {} from session was started---", id, cart);
 
-        return /*itemService.getItemByIdWithCartCount*/itemCacheService.getItemById(id, cart)
+        return itemCacheService.getItemById(id, cart)
                 .map(dto -> Rendering.view("item")
                         .modelAttribute("item", dto)
                         .status(HttpStatus.OK)
