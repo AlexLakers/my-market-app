@@ -2,7 +2,6 @@ package com.alex.market.mvc.service.impl;
 
 import com.alex.market.mvc.cache.ItemCache;
 import com.alex.market.mvc.cache.PageInfoCache;
-import com.alex.market.mvc.dto.input.ItemCreateDto;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.dto.output.PageDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
@@ -95,7 +94,7 @@ public class ItemCacheServiceImpl implements ItemCacheService {
                 }))
                 .flatMap(pageInfoCache -> {
 
-                    return loadItemsFromCache(pageInfoCache.itemsIds())
+                    return loadAndCacheItems(pageInfoCache.itemsIds())
                             .collectList()
                             .map(itemCaches -> {
                                 // 4. Конвертируем в DTO
@@ -131,7 +130,84 @@ public class ItemCacheServiceImpl implements ItemCacheService {
     }
 
 
+    private Flux<ItemCache> loadAndCacheItems(List<Long> itemIds) {
+        return Flux.fromIterable(itemIds)
+                .flatMap(id -> {
+                    String itemKey = buildItemDataKey(id);
 
+                    return itemCacheReactiveRedisTemplate.opsForValue()
+                            .get(itemKey)
+                            .switchIfEmpty(Mono.defer(() -> {
+
+                                return itemRepository.findById(id)
+                                        .switchIfEmpty(Mono.error(new ItemNotFoundException(id)))
+                                        .flatMap(item -> {
+                                            ItemCache itemCache = itemMapper.toCache(item);
+                                            return itemCacheReactiveRedisTemplate.opsForValue()
+                                                    .set(itemKey, itemCache, CACHE_TTL)
+                                                    .thenReturn(itemCache);
+                                        });
+                            }))
+                            .onErrorResume(ItemNotFoundException.class, e -> {
+                                log.warn("Item with id: {} not found in DB", id);
+                                return Mono.empty();
+                            })
+                            .onErrorResume(e -> {
+                                log.warn("Failed to get item with id: {} from cache/DB with message: {}", id, e.getMessage());
+                                return Mono.empty();
+                            });
+                });
+    }
+
+    private Mono<PageInfoCache> loadAndCachePage(SearchDto searchDto, Pageable pageable, String pageKey) {
+        return itemRepository.findAll(searchDto.search(), pageable)
+                .flatMap(page -> {
+
+                    PageInfoCache pageInfo = new PageInfoCache(
+                            page.getContent().stream()
+                                    .map(Item::getId)
+                                    .collect(Collectors.toList()),
+                            page.getSize(),
+                            page.getNumber() + 1,
+                            page.hasPrevious(),
+                            page.hasNext()
+                    );
+
+
+                    List<Mono<Void>> allCacheOperations = new ArrayList<>();
+
+
+                    page.getContent().forEach(item -> {
+                        ItemCache itemCache = itemMapper.toCache(item);
+                        String itemKey = buildItemDataKey(itemCache.id());
+
+                        Mono<Void> itemCacheOp = itemCacheReactiveRedisTemplate.opsForValue()
+                                .set(itemKey, itemCache, CACHE_TTL)
+                                .doOnSuccess(isSet -> {
+                                    if (Boolean.TRUE.equals(isSet)) {
+                                        log.debug("Cached item with id: {}", itemCache.id());
+                                    }
+                                })
+                                .then();
+
+                        allCacheOperations.add(itemCacheOp);
+                    });
+
+                    Mono<Void> pageCacheOp = pageInfoCacheReactiveRedisTemplate.opsForValue()
+                            .set(pageKey, pageInfo, CACHE_TTL)
+                            .doOnSuccess(isSet -> {
+                                if (Boolean.TRUE.equals(isSet)) {
+                                    log.debug("Cached page using key:{}", pageKey);
+                                }
+                            })
+                            .then();
+
+                    allCacheOperations.add(pageCacheOp);
+
+                    return Mono.when(allCacheOperations)
+                            .thenReturn(pageInfo);
+                });
+    }
 
 
     private String generatePageKey(SearchDto searchDto) {
