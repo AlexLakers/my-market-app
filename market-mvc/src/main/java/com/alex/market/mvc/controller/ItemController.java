@@ -125,7 +125,7 @@ public class ItemController {
     ) {
         log.info("---endpoint 'changeCartItemCountForItemPage' with input params: {},{} was started---", params, cart);
 
-        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+        return itemCacheService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .map(itemDto -> Rendering
                         .view("item")
                         .modelAttribute("item", itemDto)
