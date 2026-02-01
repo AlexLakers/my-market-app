@@ -117,30 +117,39 @@ public class ItemCacheServiceImpl implements ItemCacheService {
 
     @Override
     public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
-        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
         Long itemId = cartChangeDto.itemId();
+        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
+
         log.info("Change cart count for item with id: {}, operation: {}", itemId, cartChangeDto.action());
+
         String itemKey = buildItemDataKey(itemId);
+
         return itemCacheReactiveRedisTemplate.opsForValue().get(itemKey)
                 .switchIfEmpty(loadAndCacheItem(itemId))
                 .flatMap(itemCache -> {
-                 Mono<Integer> cartOperation=   cartService.changeItemCount(cartChangeDto)
-                            .doOnNext(newCount -> {
+
+                    Mono<Integer> cartOperation = cartService.changeItemCount(cartChangeDto);
+                    Mono<String> imageOperation = loadAndCacheImageForItem(itemCache);
+
+
+                    return Mono.zip(cartOperation, imageOperation)
+                            .map(tuple -> {
+                                Integer newCount = tuple.getT1();
+                                String imageAsBase64Uri = tuple.getT2();
+
+
                                 cart.put(itemId, newCount);
+
                                 log.info("Cart updated: item={}, new count={}", itemId, newCount);
+                                log.debug("Image loaded for item: {}", itemId);
 
-                            });
-
-                    Mono<ItemDto> itemDtoMono= loadAndCacheImageForItem(itemCache)
-                            .map(imageAsBase64Uri -> {
-                                log.info("Image updated: image={}", imageAsBase64Uri);
-                                System.out.println(itemMapper.toDtoFromItemCacheWithImage(itemCache, cart, imageAsBase64Uri).imageAsBase64());
                                 return itemMapper.toDtoFromItemCacheWithImage(itemCache, cart, imageAsBase64Uri);
                             });
-
-                   return Mono.zip(cartOperation, itemDtoMono)
-                            .map(Tuple2::getT2);
-                });
+                })
+                .doOnError(error ->
+                        log.error("Error changing cart count for item {}: {}",
+                                itemId, error.getMessage(), error)
+                );
     }
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<ItemCache> itemCaches, PageInfoCache pageInfoCache) {
