@@ -2,6 +2,7 @@ package com.alex.market.mvc.service.impl;
 
 import com.alex.market.mvc.cache.ItemCache;
 import com.alex.market.mvc.cache.PageInfoCache;
+import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.dto.output.PageDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
@@ -11,6 +12,7 @@ import com.alex.market.mvc.repository.ItemRepository;
 import com.alex.market.mvc.search.ItemSort;
 import com.alex.market.mvc.search.PageItemsDto;
 import com.alex.market.mvc.search.SearchDto;
+import com.alex.market.mvc.service.CartService;
 import com.alex.market.mvc.service.ImageService;
 import com.alex.market.mvc.service.ItemCacheService;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,10 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
+import java.awt.event.MouseMotionAdapter;
+import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,6 +51,7 @@ public class ItemCacheServiceImpl implements ItemCacheService {
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
     private final ImageService imageService;
+    private final CartService cartService;
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
 
     @Override
@@ -98,7 +104,7 @@ public class ItemCacheServiceImpl implements ItemCacheService {
                             .collectList()
                             .map(itemCaches -> {
                                 // 4. Конвертируем в DTO
-                                return toPageItemsDto(searchDto,itemCaches, pageInfoCache);
+                                return toPageItemsDto(searchDto, itemCaches, pageInfoCache);
                             });
                 })
                 .doOnNext(result ->
@@ -107,6 +113,34 @@ public class ItemCacheServiceImpl implements ItemCacheService {
                 .doOnError(error ->
                         log.error("Error during handling page: {}", error.getMessage(), error)
                 );
+    }
+
+    @Override
+    public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
+        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
+        Long itemId = cartChangeDto.itemId();
+        log.info("Change cart count for item with id: {}, operation: {}", itemId, cartChangeDto.action());
+        String itemKey = buildItemDataKey(itemId);
+        return itemCacheReactiveRedisTemplate.opsForValue().get(itemKey)
+                .switchIfEmpty(loadAndCacheItem(itemId))
+                .flatMap(itemCache -> {
+                 Mono<Integer> cartOperation=   cartService.changeItemCount(cartChangeDto)
+                            .doOnNext(newCount -> {
+                                cart.put(itemId, newCount);
+                                log.info("Cart updated: item={}, new count={}", itemId, newCount);
+
+                            });
+
+                    Mono<ItemDto> itemDtoMono= loadAndCacheImageForItem(itemCache)
+                            .map(imageAsBase64Uri -> {
+                                log.info("Image updated: image={}", imageAsBase64Uri);
+                                System.out.println(itemMapper.toDtoFromItemCacheWithImage(itemCache, cart, imageAsBase64Uri).imageAsBase64());
+                                return itemMapper.toDtoFromItemCacheWithImage(itemCache, cart, imageAsBase64Uri);
+                            });
+
+                   return Mono.zip(cartOperation, itemDtoMono)
+                            .map(Tuple2::getT2);
+                });
     }
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<ItemCache> itemCaches, PageInfoCache pageInfoCache) {
