@@ -11,6 +11,7 @@ spring:
   threads:
     virtual:
       enabled: false
+
 market:
   upload:
     maxSize: 1048576

@@ -1,24 +1,13 @@
 package com.alex.market.mvc.integration.controller;
 
-import com.alex.market.mvc.config.ConfigProperties;
-import com.alex.market.mvc.controller.CartController;
-import com.alex.market.mvc.dto.input.CartChangeDto;
-import com.alex.market.mvc.dto.output.CartDto;
-import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.model.CartAction;
-import com.alex.market.mvc.service.CartService;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockReset;
@@ -29,10 +18,8 @@ import org.springframework.web.server.WebFilterChain;
 import org.wiremock.spring.ConfigureWireMock;
 import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
-import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -116,5 +103,6 @@ class CartControllerIT extends BaseIntegrationTest {
                             .then(chain.filter(exchange));
                 });
     }
+
 
 }
