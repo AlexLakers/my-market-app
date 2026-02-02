@@ -5,8 +5,6 @@ import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.input.ItemCreateDto;
 import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.search.SortColumn;
-import com.alex.market.mvc.service.ImageService;
-import com.alex.market.mvc.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,8 +12,6 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.wiremock.spring.ConfigureWireMock;
-import org.wiremock.spring.EnableWireMock;
 
 import java.util.HashMap;
 import java.util.Map;

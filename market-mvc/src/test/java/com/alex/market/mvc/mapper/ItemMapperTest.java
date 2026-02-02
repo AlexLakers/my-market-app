@@ -1,5 +1,6 @@
 package com.alex.market.mvc.mapper;
 
+import com.alex.market.mvc.cache.ItemCache;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.model.Item;
 import com.alex.market.mvc.repository.projection.OrderItemsDetails;
@@ -13,7 +14,6 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import java.util.Map;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringJUnitConfig
 class ItemMapperTest {
@@ -48,6 +48,15 @@ class ItemMapperTest {
         assertThat(itemDto.imgPath()).isEqualTo("/images/iphone15.jpg");
         assertThat(itemDto.price()).isEqualTo(99900L);
         assertThat(itemDto.count()).isEqualTo(ITEMS_COUNT);
+    }
+    @Test
+    void toDtoFromCache_shouldReturnItemDto(){
+        ItemCache itemCache=new ItemCache(VALID_ID,"title","desc",100L,"/images");
+        Assertions.assertThat(itemMapper.toItemDtoFromCache(itemCache,3,"ImageAsBase64"))
+                .isNotNull()
+                .isInstanceOf(ItemDto.class)
+                .hasFieldOrPropertyWithValue("id",VALID_ID)
+                .hasFieldOrPropertyWithValue("title","title");
     }
 
     @TestConfiguration

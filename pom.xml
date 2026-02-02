@@ -21,6 +21,7 @@
         <lombok.version>1.18.30</lombok.version>
         <maven.compiler.plugin>3.11.0</maven.compiler.plugin>
         <maven.surefire.plugin>3.4.0</maven.surefire.plugin>
+        <testconteiners.bom.version>1.19.0</testconteiners.bom.version>
     </properties>
 <modules>
     <module>market-mvc</module>
@@ -57,7 +58,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>1.19.0</version>
+                <version>${testconteiners.bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -71,10 +72,10 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven.surefire.plugin}</version>
                 </plugin>
-         <!--       <plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
-                </plugin>-->
+                </plugin>
             </plugins>
         </pluginManagement>
 

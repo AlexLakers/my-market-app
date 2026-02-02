@@ -1,13 +1,9 @@
 package com.alex.market.mvc.controller;
 
-import com.alex.market.mvc.client.api.DefaultApi;
-import com.alex.market.mvc.client.dto.AccountResponse;
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.input.InputFormItem;
 import com.alex.market.mvc.dto.input.InputFormItems;
 import com.alex.market.mvc.dto.input.ItemCreateDto;
-import com.alex.market.mvc.dto.output.ItemDto;
-import com.alex.market.mvc.search.PageItemsDto;
 import com.alex.market.mvc.search.SearchDto;
 import com.alex.market.mvc.search.SortColumn;
 import com.alex.market.mvc.service.ImageService;
@@ -16,18 +12,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.result.view.Rendering;
 import reactor.core.publisher.Mono;
 
-import javax.swing.*;
-import java.util.HashMap;
 import java.util.Map;
 
 @Controller

@@ -18,6 +18,10 @@
 
 	<properties>
 		<java.version>21</java.version>
+		<open.api.version>2.6.0</open.api.version>
+		<jackson.databind.version>0.2.6</jackson.databind.version>
+		<wiremock.version>3.9.0</wiremock.version>
+		<testconteiner.redis.version>2.2.2</testconteiner.redis.version>
 	</properties>
 	<dependencies>
 
@@ -38,6 +42,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+		</dependency>
+
 
 		<!-- Database -->
 		<dependency>
@@ -90,6 +99,12 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>com.redis</groupId>
+			<artifactId>testcontainers-redis</artifactId>
+			<version>${testconteiner.redis.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-testcontainers</artifactId>
 			<scope>test</scope>
@@ -117,7 +132,7 @@
 		<dependency>
 			<groupId>org.wiremock.integrations</groupId>
 			<artifactId>wiremock-spring-boot</artifactId>
-			<version>3.9.0</version>
+			<version>${wiremock.version}</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -125,19 +140,14 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-			<version>2.6.0</version>
+			<version>${open.api.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
-			<version>0.2.6</version>
+			<version>${jackson.databind.version}</version>
 		</dependency>
-		<!--<dependency>
-			<groupId>org.apache.httpcomponents.client5</groupId>
-			<artifactId>httpclient5</artifactId>
-			<version>5.4.2</version>
-		</dependency>-->
 	</dependencies>
 
 	<build>

@@ -1,50 +1,19 @@
 services:
-  database-mvc:
-    image: postgres:17.0
+  redisserver:
+    image: redis:alpine
     ports:
-      - "${DB_HOST_PORT}:${DB_PORT}"
-    restart: always
+      - 6379:6379
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASS}
-      - POSTGRES_DB=${DB_NAME}
-    volumes:
-      - db-data-mvc:/var/lib/postgresql/data
-      -
-  database-rest:
-    image: postgres:17.0
-    ports:
-      - "${DB_HOST_PORT}:${DB_PORT}"
-    restart: always
-    environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASS}
-      - POSTGRES_DB=${DB_NAME}
-    volumes:
-      - db-data-rest:/var/lib/postgresql/data
-
-  market-mvc:
-    build:
-      context: .
-      dockerfile: market-mvc/Dockerfile
-    image: market-mvc
-    restart: always
-    ports:
-      - "${APP_HOST_PORT}:${APP_PORT}"
-    depends_on:
-      - database-mvc
-      -
-  payment-service:
-    build:
-      context: .
-      dockerfile: payment-service/Dockerfile
-    image: payment-service
-    restart: always
-    ports:
-      - "${APP_HOST_PORT}:${APP_PORT}"
-    depends_on:
-      - database-rest
-      -
+      REDIS_PASSWORD: mypass
+    command: [ "sh", "-c","exec redis-server --requirepass mypass" ]
+    #command: redis-server --requirepass $$REDIS_PASSWORD
+    networks:
+      backend-net:
+        aliases:
+          - redisserver
 volumes:
   db-data-mvc:
   db-data-rest:
+
+networks:
+  backend-net:

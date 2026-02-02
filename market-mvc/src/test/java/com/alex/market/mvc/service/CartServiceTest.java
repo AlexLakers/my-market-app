@@ -1,5 +1,7 @@
 package com.alex.market.mvc.service;
 
+import com.alex.market.mvc.cache.ItemCache;
+import com.alex.market.mvc.cache.PageInfoCache;
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.output.AccountBalanceDto;
 import com.alex.market.mvc.dto.output.CartDto;
@@ -21,11 +23,15 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +39,8 @@ import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,11 +50,16 @@ class CartServiceTest {
     private static final Long INVALID_ID = Long.MAX_VALUE;
     Map<Long, Integer> cartItemsCount;
 
+    private ReactiveValueOperations<String, ItemCache> valueOperationsItem;
+
+
     @BeforeEach
     void setUp() {
         cartItemsCount = new HashMap<>();
         cartItemsCount.put(VALID_ID, 2);
 
+        valueOperationsItem = Mockito.mock(ReactiveValueOperations.class);
+        when(itemCacheReactiveRedisTemplate.opsForValue()).thenReturn(valueOperationsItem);
     }
 
     @Autowired
@@ -60,6 +73,10 @@ class CartServiceTest {
 
     @Autowired
     private PaymentApiClientService paymentApiClientService;
+
+    @Autowired
+    private ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate;
+
 
     @ParameterizedTest
     @CsvSource({"PLUS, 3",
@@ -95,7 +112,12 @@ class CartServiceTest {
         Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
         AccountBalanceDto expectedBalanceDto = new AccountBalanceDto(VALID_ID, 3000L, PaymentApiStatus.valueOf(sourceStatus));
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L, targetStatus);
-        when(itemRepository.findAllById(Set.of(VALID_ID))).thenReturn(Flux.fromIterable(List.of(expectedItem)));
+
+
+        when(valueOperationsItem.get("item:data:" + VALID_ID)).thenReturn(Mono.empty());
+        when(valueOperationsItem.set(anyString(), any(ItemCache.class), any(Duration.class)))
+                .thenReturn(Mono.just(true));
+        when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(expectedItem));
         when(paymentApiClientService.getAccountById(VALID_ID)).thenReturn(Mono.just(expectedBalanceDto));
 
         StepVerifier.create(cartService.getItemsCartWithBalanceStatus(cartItemsCount))
@@ -123,8 +145,13 @@ class CartServiceTest {
         }
 
         @Bean
+        public ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate() {
+            return Mockito.mock(ReactiveRedisTemplate.class);
+        }
+
+        @Bean
         public CartService cartService() {
-            return new CartServiceImpl(itemRepository(), itemMapper(), paymentApiService());
+            return new CartServiceImpl(itemRepository(), itemMapper(), paymentApiService(), itemCacheReactiveRedisTemplate());
         }
     }
 }
