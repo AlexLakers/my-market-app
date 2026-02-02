@@ -39,6 +39,9 @@ public interface ItemMapper {
     @Mapping(target = "imageAsBase64", defaultValue = "", source = "imageAsBase64")
     ItemDto toItemDtoFromCache(ItemCache itemCache, Integer count, String imageAsBase64);
 
+
+    Item toItem(ItemCache itemCache);
+
     default ItemDto toDtoFromItemCacheWithImage(ItemCache itemCache, Map<Long, Integer> cart, String imageBase64) {
         Integer count = cart.getOrDefault(itemCache.id(), 0);
         return toItemDtoFromCache(itemCache, count, imageBase64);

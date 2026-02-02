@@ -3,6 +3,8 @@ package com.alex.market.mvc.service.impl;
 import com.alex.market.mvc.cache.ItemCache;
 import com.alex.market.mvc.cache.PageInfoCache;
 import com.alex.market.mvc.dto.input.CartChangeDto;
+import com.alex.market.mvc.dto.output.AccountBalanceDto;
+import com.alex.market.mvc.dto.output.CartDto;
 import com.alex.market.mvc.dto.output.ItemDto;
 import com.alex.market.mvc.dto.output.PageDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
@@ -15,6 +17,7 @@ import com.alex.market.mvc.search.SearchDto;
 import com.alex.market.mvc.service.CartService;
 import com.alex.market.mvc.service.ImageService;
 import com.alex.market.mvc.service.ItemCacheService;
+import com.alex.market.mvc.service.PaymentApiClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +46,7 @@ public class ItemCacheServiceImpl implements ItemCacheService {
     private final static String ITEM_IMAGE_PREFIX = "item:image:%s";
     private final static String ITEMS_PAGE_SET_PREFIX = "items:page:search:%1$s:sort:%2$s:page:%3$d:size:%4$s";
     private final static Integer CONTENT_GROUP_SIZE = 3;
+    private final static Long GENERAL_ACCOUNT_ID = 1L;
 
 
     private final ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate;
@@ -53,6 +57,7 @@ public class ItemCacheServiceImpl implements ItemCacheService {
     private final ImageService imageService;
     private final CartService cartService;
     private static final Duration CACHE_TTL = Duration.ofMinutes(1);
+    private final PaymentApiClientService paymentApiClientService;
 
     @Override
     public Mono<ItemDto> getItemById(Long id, Map<Long, Integer> cart) {
@@ -103,7 +108,7 @@ public class ItemCacheServiceImpl implements ItemCacheService {
                     return loadAndCacheItems(pageInfoCache.itemsIds())
                             .collectList()
                             .map(itemCaches -> {
-                                // 4. Конвертируем в DTO
+
                                 return toPageItemsDto(searchDto, itemCaches, pageInfoCache);
                             });
                 })
@@ -151,6 +156,86 @@ public class ItemCacheServiceImpl implements ItemCacheService {
                                 itemId, error.getMessage(), error)
                 );
     }
+
+    @Override
+    public Mono<CartDto> getItemsCartWithBalanceStatus(Map<Long, Integer> cartItemsCount) {
+        log.info("Getting cart with total, items count: {}", cartItemsCount != null ? cartItemsCount.size() : 0);
+
+        if (cartItemsCount == null || cartItemsCount.isEmpty()) {
+            log.debug("Empty cart, returning empty DTO");
+            return Mono.just(new CartDto(List.of(), 0L, ""));
+        }
+
+        Mono<AccountBalanceDto> accountBalanceDtoMono = paymentApiClientService.getAccountById(GENERAL_ACCOUNT_ID);
+
+
+        Mono<List<Item>> itemsMono = getItemsByCart(cartItemsCount).collectList();
+
+
+        return itemsMono.zipWith(accountBalanceDtoMono)
+                .flatMap(tuple -> {
+                    List<Item> items = tuple.getT1();
+                    AccountBalanceDto accDto = tuple.getT2();
+
+                    return calculateCartDto(items, cartItemsCount, accDto);
+                })
+                .doOnSuccess(cartDto ->
+                        log.info("Successfully calculated cart: {}", cartDto)
+                )
+                .doOnError(error -> log.error("Failed to calculate cart", error));
+    }
+
+    private Flux<Item> getItemsByCart(Map<Long, Integer> cartItemsCount) {
+
+        Set<Long> ids = cartItemsCount.keySet();
+
+        return Flux.fromIterable(ids)
+                .flatMap(id -> {
+                    String itemKey = buildItemDataKey(id);
+                    return itemCacheReactiveRedisTemplate.opsForValue().get(itemKey)
+                            .switchIfEmpty(loadAndCacheItem(id))
+                            .map(itemMapper::toItem)
+                            .onErrorResume(e -> {
+                                log.warn("Skipping item {} due to error: {}", id, e.getMessage());
+                                return Mono.empty();
+                            });
+
+                }, 10);
+
+    }
+
+    private Mono<CartDto> calculateCartDto(List<Item> items, Map<Long, Integer> cartItemsCount, AccountBalanceDto accountBalanceDto) {
+
+
+        List<ItemDto> itemDtos = items.stream()
+                .map(item -> itemMapper.toDto(item, cartItemsCount))
+                .collect(Collectors.toList());
+
+        Long amount = itemDtos.stream()
+                .mapToLong(dto -> {
+                    Integer count = cartItemsCount.getOrDefault(dto.id(), 0);
+                    return count * dto.price();
+                })
+                .sum();
+
+        String accountBalanceStatus = switch (accountBalanceDto.status()) {
+
+            case SUCCESS -> isEnoughMoney(accountBalanceDto.balance(), amount) ? "ENOUGH" : "NOT_ENOUGH";
+
+            case SERVICE_ERROR, NETWORK_ERROR -> "ERROR";
+
+            default -> "UNKNOWN";
+
+        };
+
+
+        return Mono.just(new CartDto(itemDtos, amount, accountBalanceStatus));
+    }
+
+    private boolean isEnoughMoney(Long balance, Long amount) {
+        return balance.compareTo(amount) >= 0;
+    }
+
 
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<ItemCache> itemCaches, PageInfoCache pageInfoCache) {
         List<ItemCache> validCaches = itemCaches.stream()
