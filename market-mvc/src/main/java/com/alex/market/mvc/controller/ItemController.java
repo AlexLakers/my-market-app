@@ -1,6 +1,5 @@
 package com.alex.market.mvc.controller;
 
-import com.alex.market.mvc.service.ItemCacheService;
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.input.InputFormItem;
 import com.alex.market.mvc.dto.input.InputFormItems;
@@ -29,7 +28,6 @@ import java.util.Map;
 public class ItemController {
     private final ItemService itemService;
     private final ImageService imageService;
-    private final ItemCacheService itemCacheService;
 
     @GetMapping(value = {"/", "/items"})
     public Mono<Rendering> getItems(@RequestParam(required = false) String search,
@@ -40,7 +38,7 @@ public class ItemController {
         log.info("---endpoint 'getItems' with input params: search={},sort={},cart={},pageNumber={},pageSize={} was started---",
                 search, sort, cart, pageNumber, pageSize);
 
-        return itemCacheService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart))
+        return itemService.getItemsPage(new SearchDto(search, sort, pageNumber, pageSize, cart))
                 .map(pageItemsDto -> Rendering.view("items")
                         .modelAttribute("items", pageItemsDto.items())
                         .modelAttribute("search", pageItemsDto.search())
@@ -99,7 +97,7 @@ public class ItemController {
 
         log.info("---endpoint 'getItem' with id: {} and cart: {} from session was started---", id, cart);
 
-        return itemCacheService.getItemById(id, cart)
+        return itemService.getItemByIdWithCartCount(id, cart)
                 .map(dto -> Rendering.view("item")
                         .modelAttribute("item", dto)
                         .status(HttpStatus.OK)
@@ -125,7 +123,7 @@ public class ItemController {
     ) {
         log.info("---endpoint 'changeCartItemCountForItemPage' with input params: {},{} was started---", params, cart);
 
-        return itemCacheService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
+        return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .map(itemDto -> Rendering
                         .view("item")
                         .modelAttribute("item", itemDto)
