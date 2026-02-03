@@ -23,8 +23,8 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST_MARKET:localhost}
-      port: 6379
-      password: mypass
+      port: ${REDIS_PORT:6379}
+     # password: mypass
   r2dbc:
     url: r2dbc:postgresql://${DB_HOST_MARKET:localhost}:${DB_PORT_MARKET:5432}/${DB_NAME_MARKET:skeleton_repository}
     username: ${DB_USER_MARKET:postgres}
@@ -40,7 +40,7 @@ market:
   upload:
     maxSize: ${MAX_IMAGE_SIZE_MARKET:5242880}
     dir: ${DIR_MARKET:/home/alexlakers/my-market}
-    paymentServiceUrl: http://localhost:8081
+    paymentServiceUrl: ${PAYMENT_SERVICE_URL_MARKET:http://localhost:8081}
 
 logging:
   level:

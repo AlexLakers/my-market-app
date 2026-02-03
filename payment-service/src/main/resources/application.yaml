@@ -14,7 +14,7 @@ spring:
     default-schema: public
     user: ${spring.r2dbc.username}
     password: ${spring.r2dbc.password}
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:payment_repository}
+    url: jdbc:postgresql://${DB_HOST_PAYMENT:localhost}:${DB_PORT_PAYMENT:5432}/${DB_NAME_PAYMENT:payment_repository}
     driver-class-name: org.postgresql.Driver
 
   r2dbc:
