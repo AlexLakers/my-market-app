@@ -1,5 +1,5 @@
 server:
-  port: ${APP_PORT:8081}
+  port: ${APP_PORT_PAYMENT:8081}
 
 spring:
   application:
@@ -18,9 +18,9 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:payment_repository}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:postgres}
+    url: r2dbc:postgresql://${DB_HOST_PAYMENT:localhost}:${DB_PORT_PAYMENT:5432}/${DB_NAME_PAYMENT:payment_repository}
+    username: ${DB_USER_PAYMENT:postgres}
+    password: ${DB_PASS_PAYMENT:postgres}
     pool:
       enabled: true
       initial-size: 10
@@ -38,7 +38,7 @@ logging:
     org.springframework.r2dbc: WARN
     org.springframework.transaction: INFO
   file:
-    name: ${PAYMENT_DIR:/home/alexlakers/my-market}/market.log
+    name: ${DIR_PAYMENT:/home/alexlakers/my-payment}/payment.log
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"

@@ -18,31 +18,28 @@ spring:
     default-schema: public
     user: ${spring.r2dbc.username}
     password: ${spring.r2dbc.password}
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:skeleton_repository}
+    url: jdbc:postgresql://${DB_HOST_MARKET:localhost}:${DB_PORT_MARKET:5432}/${DB_NAME_MARKET:skeleton_repository}
     driver-class-name: org.postgresql.Driver
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST_MARKET:localhost}
       port: 6379
       password: mypass
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:skeleton_repository}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:postgres}
+    url: r2dbc:postgresql://${DB_HOST_MARKET:localhost}:${DB_PORT_MARKET:5432}/${DB_NAME_MARKET:skeleton_repository}
+    username: ${DB_USER_MARKET:postgres}
+    password: ${DB_PASS_MARKET:postgres}
     pool:
       enabled: true
       initial-size: 10
       max-size: 50
       max-idle-time: 30s
       validation-query: SELECT 1
-  sql:
-    init:
-      mode: always
 
 market:
   upload:
-    maxSize: ${MAX_IMAGE_SIZE:5242880}
-    dir: ${MARKET_DIR:/home/alexlakers/my-market}
+    maxSize: ${MAX_IMAGE_SIZE_MARKET:5242880}
+    dir: ${DIR_MARKET:/home/alexlakers/my-market}
     paymentServiceUrl: http://localhost:8081
 
 logging:
@@ -55,7 +52,7 @@ logging:
     org.springframework.r2dbc: WARN
     org.springframework.transaction: INFO
   file:
-    name: ${MARKET_DIR:/home/alexlakers/my-market}/market.log
+    name: ${DIR_MARKET:/home/alexlakers/my-market}/market.log
   pattern:
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
     console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"
