@@ -199,9 +199,17 @@ class ItemServiceTest {
 
     @Test
     void changeCartItemCount_shouldCallCartServiceMethodSuccess() {
+        ItemCache itemCache1 = new ItemCache(1L, "testTitle1", "testDesc1", 1000L, "testImagePath1");
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID + 1));
         Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+
+        when(valueOperationsItem.get("item:data:1")).thenReturn(Mono.just(itemCache1));
+        when(valueOperationsImage.get("item:image:testImagePath1"))
+                .thenReturn(Mono.just(Base64.getEncoder().encodeToString(new byte[]{1,2,3,4})));
+        when(valueOperationsItem.set(anyString(), any(ItemCache.class), any()))
+                .thenReturn(Mono.just(true));
+        when(imageService.getImageByImgPath(Mockito.anyString())).thenReturn(Mono.just(new byte[]{1,2,3,4}));
 
         Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(expectedItem));
         Mockito.when(cartService.changeItemCount(any(CartChangeDto.class))).thenReturn(Mono.just(2));

@@ -95,6 +95,7 @@ public class ItemServiceImpl implements ItemService {
                         log.error("Error during handling page: {}", error.getMessage(), error)
                 );
     }
+
     private PageItemsDto toPageItemsDto(SearchDto searchDto, List<ItemCache> itemCaches, PageInfoCache pageInfoCache) {
         List<ItemCache> validCaches = itemCaches.stream()
                 .filter(Objects::nonNull)
@@ -222,22 +223,7 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Mono<ItemDto> getItemByIdWithCartCount(Long id, Map<Long, Integer> cart) {
-
-        String itemCacheKey = buildItemDataKey(id);
-        return itemCacheReactiveRedisTemplate.opsForValue().get(itemCacheKey)
-                .switchIfEmpty(loadAndCacheItem(id))
-                .flatMap(itemCache -> {
-                            String imageCacheKey = buildItemImageKey(itemCache.imgPath());
-                            return reactiveStringRedisTemplate.opsForValue().get(imageCacheKey)
-                                    .switchIfEmpty(loadAndCacheImageForItem(itemCache))
-                                    .map(imageUri ->
-                                            itemMapper.toDtoFromItemCacheWithImage(itemCache, cart, imageUri)
-                                    )
-                                    .defaultIfEmpty(
-                                            itemMapper.toDtoFromItemCacheWithoutImage(itemCache, cart)
-                                    );
-                        }
-                );
+        return getItemDtoWithImageFromCache(id, cart);
     }
 
     private Mono<String> loadAndCacheImageForItem(ItemCache itemCache) {
@@ -333,32 +319,36 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public Mono<ItemDto> changeCartItemCount(CartChangeDto cartChangeDto) {
-        Map<Long, Integer> cart = cartChangeDto.cartItemsCount();
+        Map<Long, Integer> cart = new HashMap<>(cartChangeDto.cartItemsCount()); // создаем копию
         Long itemId = cartChangeDto.itemId();
+
         log.info("Change cart count for item with id: {}, operation: {}", itemId, cartChangeDto.action());
 
-        return itemRepository.findById(cartChangeDto.itemId())
-                .switchIfEmpty(Mono.defer(() -> {
+        return cartService.changeItemCount(cartChangeDto)
+                .flatMap(newCount -> {
 
-                    log.warn("Item with id: {} not found for cart update", itemId);
-                    return Mono.error(new ItemNotFoundException(itemId));
-                }))
-                .flatMap(item ->
-                        cartService.changeItemCount(cartChangeDto)
-                                .map(newCount -> {
-                                    cart.put(itemId, newCount);
-
-                                    log.info("Cart updated: item={}, new count={}", itemId, newCount);
-                                    return itemMapper.toDto(item, cart);
-                                }))
-                .doOnError(error -> {
-                    if (error instanceof ItemNotFoundException) {
-                        log.warn("Cannot update cart: item with id {} not found", itemId);
-                    } else {
-                        log.error("Cart update failed for item with id{}: {}", itemId, error.getMessage());
-                    }
+                    cart.put(itemId, newCount);
+                    log.info("Cart updated: item={}, new count={}", itemId, newCount);
+                    return getItemDtoWithImageFromCache(itemId, cart);
                 });
+    }
 
+    private Mono<ItemDto> getItemDtoWithImageFromCache(Long itemId, Map<Long, Integer> cart) {
+        String itemCacheKey = buildItemDataKey(itemId);
+        return itemCacheReactiveRedisTemplate.opsForValue().get(itemCacheKey)
+                .switchIfEmpty(loadAndCacheItem(itemId))
+                .flatMap(itemCache -> {
+
+                    String imageCacheKey = buildItemImageKey(itemCache.imgPath());
+                    return reactiveStringRedisTemplate.opsForValue().get(imageCacheKey)
+                            .switchIfEmpty(loadAndCacheImageForItem(itemCache))
+                            .map(imageUri ->
+                                    itemMapper.toDtoFromItemCacheWithImage(itemCache, cart, imageUri)
+                            )
+                            .defaultIfEmpty(
+                                    itemMapper.toDtoFromItemCacheWithoutImage(itemCache, cart)
+                            );
+                });
     }
 
 
