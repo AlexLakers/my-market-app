@@ -2,12 +2,10 @@ FROM amazoncorretto:21-alpine
 
 WORKDIR /app
 
-COPY ../.mvn .mvn
+COPY . .
 
-COPY ../pom.xml .
-COPY ../mvnw .
-COPY src ./src
+RUN chmod +x mvnw && ./mvnw clean install -N -DskipTests
 
-RUN chmod +x mvnw && ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -am -pl payment-service -DskipTests
 
-ENTRYPOINT ["java", "-jar", "target/payment-service-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["java", "-jar", "payment-service/target/payment-service-0.0.1-SNAPSHOT.jar"]

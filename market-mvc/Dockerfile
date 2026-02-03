@@ -2,13 +2,6 @@ FROM amazoncorretto:21-alpine
 
 WORKDIR /app
 
-#COPY market-mvc/.mvn .mvn
-#COPY market-mvc/pom.xml .
-#COPY market-mvc/mvnw .
-#COPY market-mvc/src ./src
-
-#COPY ../pom.xml .
-
 COPY . .
 
 RUN chmod +x mvnw && ./mvnw clean install -N -DskipTests
