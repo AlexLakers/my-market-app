@@ -9,6 +9,7 @@ import com.alex.market.mvc.security.model.User;
 import com.alex.market.mvc.security.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -29,16 +30,12 @@ public class UserServiceImpl implements UserService {
         user.setPassword(encodePassword(userRegDto.password()));
         user.setRole(Role.USER);
 
-        return userRepository.existsUserByUsername(userRegDto.username())
-                .flatMap(exists -> {
-                    if (Boolean.TRUE.equals(exists)) {
-                        return Mono.error(new UsernameAlreadyExists(userRegDto.username()));
-                    }
-                    return userRepository.save(user)
-                            .map(savedUser -> {
-                                log.info("User with id: {} has been created", savedUser.getId());
-                                return userMapper.toUserDto(savedUser);
-                            });
+        return userRepository.save(user)
+                .doOnSuccess(savedUser -> log.info("User with id: {} has been created", savedUser.getId()))
+                .map(userMapper::toUserDto)
+                .onErrorResume(DataIntegrityViolationException.class, e -> {
+                    log.warn("Username already exists: {}", userRegDto.username());
+                    return Mono.error(new UsernameAlreadyExists(userRegDto.username()));
                 });
     }
 
