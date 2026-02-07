@@ -1,0 +1,27 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="insert_orders_data" author="alexlakers">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="orders"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*)
+                                         FROM users</sqlCheck>
+        </preConditions>
+        <insert tableName="users">
+            <column name="username" value="lakers@yandex.ru"/>
+            <column name="first_name" value="alex"/>
+            <column name="last_name" value="lakers"/>
+            <column name="password" value="$2a$04$Z6rem03nV7XbDNP6b8NzaOJ02k7Sc4u5xWCXkpPiT5HJiPBAZy8AK"/>
+            <column name="birthday" value="1993-01-21"/>
+            <column name="role" value="USER"/>
+        </insert>
+
+
+        <rollback>
+            <delete tableName="users">
+                <where>username = lakers@yandex.ru</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
