@@ -1,0 +1,59 @@
+server:
+  port: ${APP_PORT:8080}
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+
+  application:
+    name: market-mvc
+
+  main:
+    banner-mode: off
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    default-schema: public
+    user: ${spring.r2dbc.username}
+    password: ${spring.r2dbc.password}
+    url: jdbc:postgresql://${DB_HOST_MARKET:localhost}:${DB_PORT_MARKET:5432}/${DB_NAME_MARKET:skeleton_repository}
+    driver-class-name: org.postgresql.Driver
+    contexts: dev
+  data:
+    redis:
+      host: ${REDIS_HOST_MARKET:localhost}
+      port: ${REDIS_PORT:6379}
+     # password: mypass
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST_MARKET:localhost}:${DB_PORT_MARKET:5432}/${DB_NAME_MARKET:skeleton_repository}
+    username: ${DB_USER_MARKET:postgres}
+    password: ${DB_PASS_MARKET:postgres}
+    pool:
+      enabled: true
+      initial-size: 10
+      max-size: 50
+      max-idle-time: 30s
+      validation-query: SELECT 1
+
+market:
+  upload:
+    maxSize: ${MAX_IMAGE_SIZE_MARKET:5242880}
+    dir: ${DIR_MARKET:/home/alexlakers/my-market}
+    paymentServiceUrl: ${PAYMENT_SERVICE_URL_MARKET:http://localhost:8081}
+
+logging:
+  level:
+    root: WARN
+    com.alex.market.mvc: INFO
+    com.alex.market.mvc.service: DEBUG
+    org.springframework.data.redis: DEBUG
+    com.alex.market.mvc.repository: INFO
+    org.springframework.r2dbc: WARN
+    org.springframework.transaction: INFO
+  file:
+    name: ${DIR_MARKET:/home/alexlakers/my-market}/market.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{HH:mm:ss} %-5level %logger{36} - %msg%n"

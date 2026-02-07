@@ -1,33 +1,85 @@
 services:
-  database:
+  database-mvc:
     image: postgres:17.0
     ports:
-      - "${DB_HOST_PORT}:${DB_PORT}"
+      - "${DB_HOST_PORT_MARKET}:${DB_PORT_MARKET}"
     restart: always
     environment:
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASS}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER_MARKET}
+      - POSTGRES_PASSWORD=${DB_PASS_MARKET}
+      - POSTGRES_DB=${DB_NAME_MARKET}
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data-mvc:/var/lib/postgresql/data
+    networks:
+      backend-net:
 
+  database-payment:
+    image: postgres:17.0
+    ports:
+      - "${DB_HOST_PORT_PAYMENT}:${DB_PORT_PAYMENT}"
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER_PAYMENT}
+      - POSTGRES_PASSWORD=${DB_PASS_PAYMENT}
+      - POSTGRES_DB=${DB_NAME_PAYMENT}
+    volumes:
+      - db-data-rest:/var/lib/postgresql/data
+    networks:
+      backend-net:
 
-  market-service:
+  market-mvc:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: market-mvc/Dockerfile
     image: market
     restart: always
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
     ports:
-      - "${APP_HOST_PORT}:${APP_PORT}"
+      - "${APP_HOST_PORT_MARKET}:${APP_PORT_MARKET}"
+    environment:
+      - DB_USER_MARKET=${DB_USER_MARKET}
+      - DB_PASS_MARKET=${DB_PASS_MARKET}
+      - DB_HOST_MARKET=${DB_HOST_MARKET}
+      - DB_PORT_MARKET=${DB_PORT_MARKET}
+      - DB_NAME_MARKET=${DB_NAME_MARKET}
+      - REDIS_HOST_MARKET=${REDIS_HOST_MARKET}
+      - MAX_IMAGE_SIZE_MARKET=${MAX_IMAGE_SIZE_MARKET}
+      - DIR_MARKET=${DIR_MARKET}
+      - PAYMENT_SERVICE_URL_MARKET=${PAYMENT_SERVICE_URL_MARKET}
+    networks:
+      backend-net:
     depends_on:
-      - database
+      - database-mvc
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    image: payment
+    restart: always
+    ports:
+      - "${APP_HOST_PORT_PAYMENT}:${APP_PORT_PAYMENT}"
+    environment:
+        - DB_USER_PAYMENT=${DB_USER_PAYMENT}
+        - DB_PASS_PAYMENT=${DB_PASS_PAYMENT}
+        - DB_HOST_PAYMENT=${DB_HOST_PAYMENT}
+        - DB_PORT_PAYMENT=${DB_PORT_PAYMENT}
+        - DB_NAME_PAYMENT=${DB_NAME_PAYMENT}
+        - DIR_PAYMENT=${DIR_PAYMENT}
+    networks:
+      backend-net:
+    depends_on:
+      - database-payment
+
+  redisserver:
+    image: redis:alpine
+    ports:
+      - "${REDIS_HOST_PORT}:${REDIS_PORT}"
+    networks:
+      backend-net:
 
 volumes:
-  db-data:
+  db-data-mvc:
+  db-data-rest:
+
+networks:
+  backend-net:

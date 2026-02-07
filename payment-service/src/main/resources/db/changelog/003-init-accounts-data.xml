@@ -1,0 +1,27 @@
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    <changeSet id="insert_accounts_data" author="alexlakers">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="accounts"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*)
+                                         FROM accounts</sqlCheck>
+        </preConditions>
+        <insert tableName="accounts">
+            <column name="balance" valueNumeric="100000"/>
+            <column name="user_id" value="1"/>
+        </insert>
+        <insert tableName="accounts">
+            <column name="id" value="0"/>
+            <column name="balance" valueNumeric="0"/>
+            <column name="user_id" value="100"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="accounts">
+                <where>user_id = 1</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
