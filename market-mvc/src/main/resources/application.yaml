@@ -20,6 +20,7 @@ spring:
     password: ${spring.r2dbc.password}
     url: jdbc:postgresql://${DB_HOST_MARKET:localhost}:${DB_PORT_MARKET:5432}/${DB_NAME_MARKET:skeleton_repository}
     driver-class-name: org.postgresql.Driver
+    contexts: dev
   data:
     redis:
       host: ${REDIS_HOST_MARKET:localhost}

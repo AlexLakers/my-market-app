@@ -1,7 +1,6 @@
 package com.alex.market.mvc.service.impl;
 
 import com.alex.market.mvc.config.ConfigProperties;
-import com.alex.market.mvc.exception.ImageGettingException;
 import com.alex.market.mvc.exception.ImageStorageException;
 import com.alex.market.mvc.exception.ItemNotFoundException;
 import com.alex.market.mvc.repository.ItemRepository;
@@ -9,9 +8,6 @@ import com.alex.market.mvc.service.ImageService;
 import com.alex.market.mvc.validation.ValidMessages;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.buffer.DataBufferUtils;
-import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -22,7 +18,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 
 @Service

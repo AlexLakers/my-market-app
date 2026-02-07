@@ -5,11 +5,9 @@ import com.alex.market.mvc.cache.PageInfoCache;
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.input.ItemCreateDto;
 import com.alex.market.mvc.dto.output.ItemDto;
-import com.alex.market.mvc.dto.output.PageDto;
 import com.alex.market.mvc.exception.ItemNotFoundException;
 import com.alex.market.mvc.exception.TitleAlreadyExistsException;
 import com.alex.market.mvc.mapper.ItemMapper;
-import com.alex.market.mvc.mapper.ItemMapperImpl;
 import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.model.Item;
 import com.alex.market.mvc.repository.ItemRepository;
@@ -17,62 +15,53 @@ import com.alex.market.mvc.search.PageItemsDto;
 import com.alex.market.mvc.search.SearchDto;
 import com.alex.market.mvc.search.SortColumn;
 import com.alex.market.mvc.service.impl.ItemServiceImpl;
-import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.*;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-@SpringJUnitConfig
+@ExtendWith(MockitoExtension.class)
 class ItemServiceTest {
+
+    @Mock
+    private ItemRepository itemRepository;
+
+    @Mock
+    private ItemMapper itemMapper;
+
+    @Mock
+    private CartService cartService;
+
+    @Mock
+    private ImageService imageService;
+
+    @Mock
+    private ItemCacheService itemCacheService;
+
+    @InjectMocks
+    private ItemServiceImpl itemService;
 
     private final Long VALID_ID = 1L;
     private final Long INVALID_ID = 10000L;
     private Map<Long, Integer> cartItemsCount;
-
-    @Autowired
-    private ItemRepository itemRepository;
-    @Autowired
-    private ItemService itemService;
-    @Autowired
-    private CartService cartService;
-    @Autowired
-    private ImageService imageService;
-
-    @Autowired
-    private ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate;
-    @Autowired
-    private ReactiveRedisTemplate<String, PageInfoCache> pageInfoCacheReactiveRedisTemplate;
-    @Autowired
-    private ReactiveStringRedisTemplate reactiveStringRedisTemplate;
-
-
-    private ReactiveValueOperations<String, ItemCache> valueOperationsItem;
-
-    private ReactiveValueOperations<String, PageInfoCache> valueOperationsPage;
-
-    private ReactiveValueOperations<String,String> valueOperationsImage;
-
+    private ItemCache testItemCache;
+    private Item testItem;
+    private ItemDto testItemDto;
 
     @BeforeEach
     void setUp() {
@@ -81,198 +70,279 @@ class ItemServiceTest {
         cartItemsCount.put(2L, 2);
         cartItemsCount.put(3L, 3);
 
-        valueOperationsItem = Mockito.mock(ReactiveValueOperations.class);
-        valueOperationsPage = Mockito.mock(ReactiveValueOperations.class);
-        valueOperationsImage = Mockito.mock(ReactiveValueOperations.class);
+        testItemCache = new ItemCache(
+                VALID_ID,
+                "Test Item",
+                "Description",
+                1000L,
+                "testImagePath.jpg"
+        );
 
+        testItem = Item.builder()
+                .id(VALID_ID)
+                .title("Test Item")
+                .description("Description")
+                .price(1000L)
+                .imgPath("testImagePath.jpg")
+                .build();
 
-        when(itemCacheReactiveRedisTemplate.opsForValue()).thenReturn(valueOperationsItem);
-        when(pageInfoCacheReactiveRedisTemplate.opsForValue()).thenReturn(valueOperationsPage);
-        when(reactiveStringRedisTemplate.opsForValue()).thenReturn(valueOperationsImage);
+        testItemDto = new ItemDto(
+                VALID_ID,
+                "Test Item",
+                "Description",
+                "data:image/jpeg;base64,abc123",
+                1000L,
+                1
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+        Mockito.reset(itemRepository, itemMapper, cartService, imageService, itemCacheService);
     }
 
     @Test
     void getItemsPage_shouldReturnItems() {
-
         SearchDto givenDto = new SearchDto("test", SortColumn.PRICE, 1, 3, cartItemsCount);
-        Page<Item> pageItems = getExpectedPageItems(givenDto.pageNumber(), givenDto.pageSize(), 4);
 
+        PageInfoCache pageInfoCache = new PageInfoCache(
+                Arrays.asList(1L, 2L, 3L, 4L),
+                3,
+                1,
+                false,
+                true
+        );
 
         ItemCache itemCache1 = new ItemCache(1L, "testTitle1", "testDesc1", 1000L, "testImagePath1");
         ItemCache itemCache2 = new ItemCache(2L, "testTitle2", "testDesc2", 2000L, "testImagePath2");
         ItemCache itemCache3 = new ItemCache(3L, "testTitle3", "testDesc3", 3000L, "testImagePath3");
         ItemCache itemCache4 = new ItemCache(4L, "testTitle4", "testDesc4", 4000L, "testImagePath4");
 
-        when(itemRepository.findAll(anyString(), any(Pageable.class)))
-                .thenReturn(Mono.just(pageItems));
+        ItemDto itemDto1 = new ItemDto(1L, "testTitle1", "testDesc1", "", 1000L, 1);
+        ItemDto itemDto2 = new ItemDto(2L, "testTitle2", "testDesc2", "", 2000L, 2);
+        ItemDto itemDto3 = new ItemDto(3L, "testTitle3", "testDesc3", "", 3000L, 3);
+        ItemDto itemDto4 = new ItemDto(4L, "testTitle4", "testDesc4", "", 4000L, 0);
 
+        when(itemCacheService.getPageWithCache(eq(givenDto), any(Pageable.class)))
+                .thenReturn(Mono.just(pageInfoCache));
 
-        when(valueOperationsPage.get(anyString()))
-                .thenReturn(Mono.empty());
-        when(valueOperationsPage.set(anyString(), any(PageInfoCache.class), any()))
-                .thenReturn(Mono.just(true));
+        when(itemCacheService.getItemsWithCache(new HashSet<>(Arrays.asList(1L, 2L, 3L, 4L))))
+                .thenReturn(Flux.just(itemCache1, itemCache2, itemCache3, itemCache4));
 
+        when(itemMapper.toDtoFromItemCacheWithoutImage(itemCache1, cartItemsCount))
+                .thenReturn(itemDto1);
+        when(itemMapper.toDtoFromItemCacheWithoutImage(itemCache2, cartItemsCount))
+                .thenReturn(itemDto2);
+        when(itemMapper.toDtoFromItemCacheWithoutImage(itemCache3, cartItemsCount))
+                .thenReturn(itemDto3);
+        when(itemMapper.toDtoFromItemCacheWithoutImage(itemCache4, cartItemsCount))
+                .thenReturn(itemDto4);
 
-        when(valueOperationsItem.get("item:data:1")).thenReturn(Mono.just(itemCache1));
-        when(valueOperationsItem.get("item:data:2")).thenReturn(Mono.just(itemCache2));
-        when(valueOperationsItem.get("item:data:3")).thenReturn(Mono.just(itemCache3));
-        when(valueOperationsItem.get("item:data:4")).thenReturn(Mono.just(itemCache4));
-
-        when(valueOperationsItem.set(anyString(), any(ItemCache.class), any()))
-                .thenReturn(Mono.just(true));
-
-        Mono<PageItemsDto> result = itemService.getItemsPage(givenDto);
-
-        StepVerifier.create(result)
+        StepVerifier.create(itemService.getItemsPage(givenDto))
                 .expectNextMatches(pageDto -> {
-
                     assertThat(pageDto).isNotNull();
                     assertThat(pageDto.items()).isNotNull();
-
-
-                    return pageDto.pageDto().pageNumber() == 1 &&
-                           pageDto.pageDto().pageSize() == 3;
+                    assertThat(pageDto.pageDto().pageNumber()).isEqualTo(1);
+                    assertThat(pageDto.pageDto().pageSize()).isEqualTo(3);
+                    assertThat(pageDto.search()).isEqualTo("test");
+                    assertThat(pageDto.sort()).isEqualTo("PRICE");
+                    return true;
                 })
                 .verifyComplete();
     }
 
-
-    static Page<Item> getExpectedPageItems(int pageNumber, int pageSize, long total) {
-        List<Item> content = Arrays.asList(
-                new Item(1L, "testTitle1", "testDesc1", "testImagePath1", 1000L),
-                new Item(2L, "testTitle2", "testDesc2", "testImagePath2", 2000L),
-                new Item(3L, "testTitle3", "testDesc3", "testImagePath3", 3000L),
-                new Item(4L, "testTitle4", "testDesc4", "testImagePath4", 4000L)
-        );
-
-        return new PageImpl<Item>(content, PageRequest.of(pageNumber, pageSize), total);
-    }
-
-
     @Test
     void createItem_shouldReturnSavedItemWithIdSuccess() {
-        Mockito.when(itemRepository.existsByTitle("test-title")).thenReturn(Mono.just(Boolean.FALSE));
-        Mockito.when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(Item.builder().id(VALID_ID).build()));
         ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
-        ItemDto actualSavedItemDto = itemService.createItem(givenDto).block();
+        Item savedItem = Item.builder()
+                .id(VALID_ID)
+                .title("test-title")
+                .description("description")
+                .price(1000L)
+                .build();
+        ItemDto expectedItemDto = new ItemDto(VALID_ID, "test-title", "description", "", 1000L, 0);
 
-        Assertions.assertThat(actualSavedItemDto).isNotNull()
-                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID);
+        when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(savedItem));
+        when(itemMapper.toDto(savedItem, new HashMap<>())).thenReturn(expectedItemDto);
+
+        StepVerifier.create(itemService.createItem(givenDto))
+                .expectNext(expectedItemDto)
+                .verifyComplete();
+
+        verify(itemRepository).save(any(Item.class));
     }
 
     @Test
     void createItem_shouldThrowTitleAlreadyExistsException_whenTitleAlreadyExistsFail() {
-        Mockito.when(itemRepository.existsByTitle("already-title")).thenReturn(Mono.just(Boolean.TRUE));
         ItemCreateDto givenDto = new ItemCreateDto("already-title", "description", 1000L);
 
-        Assertions.assertThatExceptionOfType(TitleAlreadyExistsException.class)
-                .isThrownBy(() -> itemService.createItem(givenDto).block());
+        when(itemRepository.save(any(Item.class)))
+                .thenReturn(Mono.error(new DataIntegrityViolationException("Duplicate entry")));
+
+        StepVerifier.create(itemService.createItem(givenDto))
+                .expectError(TitleAlreadyExistsException.class)
+                .verify();
+
+        verify(itemRepository).save(any(Item.class));
     }
 
     @Test
     void getItemByIdWithCart_shouldReturnDtoWithIdSuccess() {
-        ItemCache itemCache1 = new ItemCache(1L, "testTitle1", "testDesc1", 1000L, "testImagePath1");
-        Item item = Item.builder().id(VALID_ID).build();
-        when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(item));
+        String imageUri = "data:image/jpeg;base64,test";
+        ItemDto itemDtoWithoutImage = new ItemDto(VALID_ID, "Test Item", "Description", "", 1000L, 1);
 
-        when(valueOperationsItem.get("item:data:1")).thenReturn(Mono.just(itemCache1));
-        when(valueOperationsImage.get("item:image:testImagePath1"))
-                .thenReturn(Mono.just(Base64.getEncoder().encodeToString(new byte[]{1,2,3,4})));
-        when(valueOperationsItem.set(anyString(), any(ItemCache.class), any()))
-                .thenReturn(Mono.just(true));
-        when(imageService.getImageByImgPath(Mockito.anyString())).thenReturn(Mono.just(new byte[]{1,2,3,4}));
+        when(itemCacheService.getItemWithCache(VALID_ID)).thenReturn(Mono.just(testItemCache));
+        when(itemCacheService.getImageFromCache("testImagePath.jpg")).thenReturn(Mono.just(imageUri));
+        when(itemMapper.toDtoFromItemCacheWithImage(testItemCache, cartItemsCount, imageUri))
+                .thenReturn(testItemDto);
 
-        ItemDto actualDto = itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount).block();
-        Assertions.assertThat(actualDto).isNotNull()
-                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID);
+        when(itemMapper.toDtoFromItemCacheWithoutImage(testItemCache, cartItemsCount))
+                .thenReturn(itemDtoWithoutImage);
 
+        StepVerifier.create(itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount))
+                .expectNext(testItemDto)
+                .verifyComplete();
+
+        verify(itemCacheService, times(1)).getItemWithCache(VALID_ID);
+        verify(itemCacheService, times(1)).getImageFromCache("testImagePath.jpg");
+    }
+
+    @Test
+    void getItemByIdWithCartCount_shouldLoadImageFromServiceWhenNotInCache() {
+        String imageUri = "data:image/jpg;base64,test";
+        byte[] imageBytes = new byte[]{1, 2, 3, 4};
+        ItemDto itemDtoWithoutImage = new ItemDto(VALID_ID, "Test Item", "Description", "", 1000L, 1);
+
+        when(itemCacheService.getItemWithCache(VALID_ID)).thenReturn(Mono.just(testItemCache));
+        when(itemCacheService.getImageFromCache("testImagePath.jpg")).thenReturn(Mono.empty());
+        when(imageService.getImageByImgPath("testImagePath.jpg")).thenReturn(Mono.just(imageBytes));
+        when(itemCacheService.saveImageToCache(eq("testImagePath.jpg"), anyString()))
+                .thenReturn(Mono.empty());
+        when(itemMapper.toDtoFromItemCacheWithImage(eq(testItemCache), eq(cartItemsCount), anyString()))
+                .thenReturn(testItemDto);
+        when(itemMapper.toDtoFromItemCacheWithoutImage(testItemCache, cartItemsCount))
+                .thenReturn(itemDtoWithoutImage);
+
+        StepVerifier.create(itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount))
+                .expectNext(testItemDto)
+                .verifyComplete();
+
+        verify(itemCacheService).getItemWithCache(VALID_ID);
+        verify(itemCacheService).getImageFromCache("testImagePath.jpg");
+        verify(imageService).getImageByImgPath("testImagePath.jpg");
+        verify(itemCacheService).saveImageToCache(eq("testImagePath.jpg"), anyString());
+    }
+
+    @Test
+    void getItemByIdWithCartCount_shouldReturnItemWithoutImageWhenImageNotInCacheAndServiceFails() {
+        // Arrange
+        ItemDto itemDtoWithoutImage = new ItemDto(VALID_ID, "Test Item", "Description", "", 1000L, 1);
+
+        when(itemCacheService.getItemWithCache(VALID_ID)).thenReturn(Mono.just(testItemCache));
+        when(itemCacheService.getImageFromCache("testImagePath.jpg")).thenReturn(Mono.empty());
+        when(imageService.getImageByImgPath("testImagePath.jpg")).thenReturn(Mono.empty());
+        when(itemMapper.toDtoFromItemCacheWithoutImage(testItemCache, cartItemsCount))
+                .thenReturn(itemDtoWithoutImage);
+
+        StepVerifier.create(itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount))
+                .expectNext(itemDtoWithoutImage)
+                .verifyComplete();
+
+        verify(itemCacheService).getItemWithCache(VALID_ID);
+        verify(itemCacheService).getImageFromCache("testImagePath.jpg");
+        verify(imageService).getImageByImgPath("testImagePath.jpg");
     }
 
     @Test
     void getItemByIdWithCartCount_shouldThrowItemNotFoundException_whenItemNotFoundFail() {
-        when(valueOperationsItem.get("item:data:10000")).thenReturn(Mono.empty());
-        when(itemRepository.findById(INVALID_ID)).thenReturn(Mono.empty());
+        // Arrange
+        when(itemCacheService.getItemWithCache(INVALID_ID)).thenReturn(Mono.empty());
 
-        Assertions.assertThatExceptionOfType(ItemNotFoundException.class)
-                .isThrownBy(() -> itemService.getItemByIdWithCartCount(INVALID_ID, cartItemsCount).block());
+        StepVerifier.create(itemService.getItemByIdWithCartCount(INVALID_ID, cartItemsCount))
+                .expectError(ItemNotFoundException.class)
+                .verify();
+
+        verify(itemCacheService).getItemWithCache(INVALID_ID);
     }
 
     @Test
     void changeCartItemCount_shouldCallCartServiceMethodSuccess() {
-        ItemCache itemCache1 = new ItemCache(1L, "testTitle1", "testDesc1", 1000L, "testImagePath1");
-        ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID + 1));
-        Item expectedItem = new Item(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L);
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+        Map<Long, Integer> updatedCart = new HashMap<>(cartItemsCount);
+        updatedCart.put(VALID_ID, 2);
 
-        when(valueOperationsItem.get("item:data:1")).thenReturn(Mono.just(itemCache1));
-        when(valueOperationsImage.get("item:image:testImagePath1"))
-                .thenReturn(Mono.just(Base64.getEncoder().encodeToString(new byte[]{1,2,3,4})));
-        when(valueOperationsItem.set(anyString(), any(ItemCache.class), any()))
-                .thenReturn(Mono.just(true));
-        when(imageService.getImageByImgPath(Mockito.anyString())).thenReturn(Mono.just(new byte[]{1,2,3,4}));
+        String imageUri = "data:image/jpeg;base64,test";
+        ItemDto updatedItemDto = new ItemDto(VALID_ID, "Test Item", "Description", imageUri, 1000L, 2);
+        ItemDto itemDtoWithoutImage = new ItemDto(VALID_ID, "Test Item", "Description", "", 1000L, 2);
 
-        Mockito.when(itemRepository.findById(VALID_ID)).thenReturn(Mono.just(expectedItem));
-        Mockito.when(cartService.changeItemCount(any(CartChangeDto.class))).thenReturn(Mono.just(2));
+        when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(2));
+        when(itemCacheService.getItemWithCache(VALID_ID)).thenReturn(Mono.just(testItemCache));
+        when(itemCacheService.getImageFromCache("testImagePath.jpg")).thenReturn(Mono.just(imageUri));
+        when(itemMapper.toDtoFromItemCacheWithImage(testItemCache, updatedCart, imageUri))
+                .thenReturn(updatedItemDto);
 
-        ItemDto actualDto = itemService.changeCartItemCount(givenDto).block();
+        when(itemMapper.toDtoFromItemCacheWithoutImage(testItemCache, updatedCart))
+                .thenReturn(itemDtoWithoutImage);
 
-        assertThat(actualDto)
-                .hasFieldOrPropertyWithValue(Item.Fields.id, VALID_ID)
-                .hasFieldOrPropertyWithValue("count", expectedDto.count());
+        StepVerifier.create(itemService.changeCartItemCount(givenDto))
+                .expectNext(updatedItemDto)
+                .verifyComplete();
+
+        verify(cartService).changeItemCount(givenDto);
+        verify(itemCacheService).getItemWithCache(VALID_ID);
+        verify(itemCacheService).getImageFromCache("testImagePath.jpg");
     }
 
+    @Test
+    void changeCartItemCount_shouldReturnItemWithoutImageWhenNoImage() {
+        CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
+        Map<Long, Integer> updatedCart = new HashMap<>(cartItemsCount);
+        updatedCart.put(VALID_ID, 2);
 
-    @TestConfiguration
-    static class TestConfig {
+        ItemCache itemCacheWithoutImage = new ItemCache(VALID_ID, "Test Item", "Description", 1000L, null);
+        ItemDto updatedItemDto = new ItemDto(VALID_ID, "Test Item", "Description", "", 1000L, 2);
 
-        @Bean
-        public ItemRepository itemRepository() {
-            return mock(ItemRepository.class);
-        }
+        when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(2));
+        when(itemCacheService.getItemWithCache(VALID_ID)).thenReturn(Mono.just(itemCacheWithoutImage));
+        when(itemMapper.toDtoFromItemCacheWithoutImage(itemCacheWithoutImage, updatedCart))
+                .thenReturn(updatedItemDto);
 
-        @Bean
-        public CartService cartService() {
-            return mock(CartService.class);
-        }
+        StepVerifier.create(itemService.changeCartItemCount(givenDto))
+                .expectNext(updatedItemDto)
+                .verifyComplete();
 
-        @Bean
-        public ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate() {
-            return Mockito.mock(ReactiveRedisTemplate.class);
-        }
+        verify(cartService).changeItemCount(givenDto);
+        verify(itemCacheService).getItemWithCache(VALID_ID);
+        verify(itemCacheService, never()).getImageFromCache(anyString());
+    }
 
-        @Bean
-        public ReactiveRedisTemplate<String, PageInfoCache> pageInfoCacheReactiveRedisTemplate() {
-            return Mockito.mock(ReactiveRedisTemplate.class);
-        }
+    @Test
+    void getItemsPage_shouldHandleEmptyPage() {
+        SearchDto givenDto = new SearchDto("nonexistent", SortColumn.PRICE, 1, 3, new HashMap<>());
+        PageInfoCache emptyPageInfo = new PageInfoCache(
+                Collections.emptyList(),
+                3,
+                1,
+                false,
+                false
+        );
 
-        @Bean
-        public ReactiveStringRedisTemplate reactiveStringRedisTemplate() {
-            return Mockito.mock(ReactiveStringRedisTemplate.class);
-        }
+        when(itemCacheService.getPageWithCache(eq(givenDto), any(Pageable.class)))
+                .thenReturn(Mono.just(emptyPageInfo));
+        when(itemCacheService.getItemsWithCache(Collections.emptySet()))
+                .thenReturn(Flux.empty());
 
-
-        @Bean
-        public ImageService imageService() {
-            return Mockito.mock(ImageService.class);
-        }
-
-        @Bean
-        public ItemService itemService(ItemRepository itemRepository,
-                                       ItemMapper itemMapper,
-                                       CartService cartService,
-                                       ImageService imageService,
-                                       ReactiveRedisTemplate<String, ItemCache> itemCacheReactiveRedisTemplate,
-                                       ReactiveRedisTemplate<String, PageInfoCache> pageInfoCacheReactiveRedisTemplate,
-                                       ReactiveStringRedisTemplate reactiveStringRedisTemplate
-
-        ) {
-            return new ItemServiceImpl(itemRepository, itemMapper, cartService, imageService, itemCacheReactiveRedisTemplate, pageInfoCacheReactiveRedisTemplate, reactiveStringRedisTemplate);
-        }
-
-        @Bean
-        public ItemMapper itemMapper() {
-            return new ItemMapperImpl();
-        }
-
+        StepVerifier.create(itemService.getItemsPage(givenDto))
+                .expectNextMatches(pageDto -> {
+                    assertThat(pageDto).isNotNull();
+                    assertThat(pageDto.items()).isNotNull();
+                    assertThat(pageDto.items()).isEmpty();
+                    assertThat(pageDto.pageDto().pageNumber()).isEqualTo(1);
+                    assertThat(pageDto.pageDto().pageSize()).isEqualTo(3);
+                    assertThat(pageDto.pageDto().hasPrevious()).isFalse();
+                    assertThat(pageDto.pageDto().hasNext()).isFalse();
+                    return true;
+                })
+                .verifyComplete();
     }
 }
