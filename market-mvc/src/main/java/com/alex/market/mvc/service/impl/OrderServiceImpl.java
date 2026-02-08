@@ -56,6 +56,7 @@ public class OrderServiceImpl implements OrderService {
                     Order order = new Order();
                     order.setStatus(OrderStatus.PENDING);
                     order.setTotalSum(totalSum);
+                    order.setUserId(1L); //TODO
                     return orderRepository.save(order)
                             .flatMap(savedOrder -> {
                                 log.debug("Order was saved in BD with id: {}", savedOrder.getId());

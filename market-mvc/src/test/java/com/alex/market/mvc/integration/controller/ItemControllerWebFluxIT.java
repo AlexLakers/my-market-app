@@ -14,6 +14,7 @@ import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.search.PageItemsDto;
 import com.alex.market.mvc.search.SearchDto;
 import com.alex.market.mvc.search.SortColumn;
+import com.alex.market.mvc.security.config.SecurityConfig;
 import com.alex.market.mvc.service.ImageService;
 import com.alex.market.mvc.service.ItemService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(ItemController.class)
-@Import({ConfigProperties.class, GlobalExceptionHandler.class})
+@Import({ConfigProperties.class, GlobalExceptionHandler.class, SecurityConfig.class})
 @ActiveProfiles("test")
 class ItemControllerWebFluxIT {
 
@@ -53,6 +54,7 @@ class ItemControllerWebFluxIT {
 
     @MockitoBean
     private ImageService imageService;
+
     @MockitoBean(reset = MockReset.BEFORE)
     private CartWebFilter cartWebFilter;
 
