@@ -138,29 +138,31 @@ public class OrderServiceImpl implements OrderService {
 
 
     @Override
-    public Flux<OrderDto> findAllPaidOrders() {
+    @PreAuthorize("hasAuthority('USER') or #userId==authentication.principal.id")
+    public Flux<OrderDto> findAllPaidOrdersByUserId(Long userId) {
         log.info("Getting all orders");
 
-        return orderRepository.findAllByStatus(OrderStatus.PAID)
-                .flatMap(order ->
-                        orderItemRepository.findItemsWithDetailsByOrderId(order.getId())
-                                .collectList()
-                                .map(orderItems -> {
-                                    log.info("Found orders: {}", orderItems.size());
+        return orderRepository.findAllByStatusAndUserId(OrderStatus.PAID, userId)
+                                .flatMap(order ->
+                                        orderItemRepository.findItemsWithDetailsByOrderId(order.getId())
+                                                .collectList()
+                                                .map(orderItems -> {
+                                                    log.debug("For order with id: {} found {} items", order.getId(), orderItems.size());
 
-                                    List<ItemDto> itemDtos = orderItems.stream()
-                                            .map(itemMapper::toDtoFromOrderItemDetails)
-                                            .collect(Collectors.toList());
+                                                    List<ItemDto> itemDtos = orderItems.stream()
+                                                            .map(itemMapper::toDtoFromOrderItemDetails)
+                                                            .collect(Collectors.toList());
 
-                                    log.debug("For order with id: {} found {} items", order.getId(), itemDtos.size());
-                                    return new OrderDto(order.getId(), itemDtos, order.getTotalSum());
-                                }))
-                .doOnComplete(() ->
-                        log.debug("Finished handling orders")
-                )
-                .doOnError(error ->
-                        log.error("Error during getting orders: {}", error.getMessage(), error)
-                );
+                                                    return new OrderDto(order.getId(), itemDtos, order.getTotalSum());
+                                                })
+                                )
+                                .doOnComplete(() ->
+                                        log.debug("Finished handling orders")
+                                )
+                                .doOnError(error ->
+                                        log.error("Error during getting orders: {}", error.getMessage(), error)
+                                );
+              /*  );*/
     }
 
     @Override
