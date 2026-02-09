@@ -34,7 +34,6 @@ import static org.mockito.ArgumentMatchers.any;
         value = "lakers@yandex.ru",
         setupBefore = TestExecutionEvent.TEST_EXECUTION
 )*/
-@Import(TestCartFilterConfig.class)
 class OrderControllerIT extends BaseIntegrationTest {
     private static final Long VALID_ID = 1000L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
@@ -56,9 +55,9 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser()
-
-                .authorities("USER")).get()
+        testClient
+                .mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
+                .get()
                 .uri("/orders")
                 .exchange()
                 .expectStatus().isOk()
@@ -71,9 +70,8 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getOrderById_shouldReturnOneDtoAndViewSuccess() {
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser()
-                        .authorities("USER")).
-                get()
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
+                .get()
                 .uri("/orders/" + VALID_ID)
                 .exchange()
                 .expectStatus().isOk()
@@ -86,8 +84,8 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getOrderById_shouldSetStatus404_whenNotFoundFail() {
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser()
-                        .authorities("USER")).get()
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
+                .get()
                 .uri("/orders/" + INVALID_ID)
                 .exchange()
                 .expectStatus().isNotFound()
@@ -109,8 +107,7 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .willReturn(okJson(failedResponse)));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
-                .mutateWith(SecurityMockServerConfigurers.mockUser()
-                .authorities("USER"))
+                .mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
                 .post()
                 .uri("/buy")
                 .exchange()
@@ -126,8 +123,7 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .willReturn(okJson("{\"accountId\":1,\"orderId\":1,\"transactionId\":30,\"status\":\"SUCCESS\",\"amount\":1000}")));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
-                .mutateWith(SecurityMockServerConfigurers.mockUser()
-                .authorities("USER"))
+                .mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
                 .post()
                 .uri("/buy")
                 .exchange()

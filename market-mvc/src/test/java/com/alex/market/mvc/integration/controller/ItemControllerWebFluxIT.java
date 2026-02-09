@@ -26,6 +26,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -125,7 +126,7 @@ class ItemControllerWebFluxIT {
         ItemDto itemDto = new ItemDto(VALID_ID, givenDto.title(), givenDto.description(), null, givenDto.price(), 1);
         when(itemService.createItem(givenDto)).thenReturn(Mono.just(itemDto));
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/new")
                         .queryParam("title", givenDto.title())
@@ -148,7 +149,7 @@ class ItemControllerWebFluxIT {
         ItemCreateDto givenDto = new ItemCreateDto("already-title", "description", 1000L);
         doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/new")
                         .queryParam("title", givenDto.title())
@@ -175,7 +176,7 @@ class ItemControllerWebFluxIT {
 
         when(imageService.updateImageByItemId(any(FilePart.class), anyLong())).thenReturn(Mono.empty());
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{id}/images/new", VALID_ID)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(builder.build())
@@ -196,7 +197,7 @@ class ItemControllerWebFluxIT {
         when(imageService.updateImageByItemId(any(FilePart.class), anyLong()))
                 .thenReturn(Mono.error(() -> new ItemNotFoundException(INVALID_ID)));
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{id}/images/new", INVALID_ID)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(builder.build())
@@ -245,7 +246,7 @@ class ItemControllerWebFluxIT {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
         when(itemService.changeCartItemCount(givenDto)).thenReturn(Mono.just(expectedDto));
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items")
                         .queryParam("id", givenDto.itemId())
@@ -267,7 +268,7 @@ class ItemControllerWebFluxIT {
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
         when(itemService.changeCartItemCount(givenDto)).thenReturn(Mono.just(expectedDto));
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{itemId}?action=" + CartAction.PLUS.name(), VALID_ID)
                 .exchange()
                 .expectStatus().isOk()

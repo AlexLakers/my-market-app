@@ -29,7 +29,7 @@ public class CustomAuthenticationSuccessHandler implements ServerAuthenticationS
         return exchange.getSession()
                 .doOnNext(session -> {
 
-                    Map<Long, Integer> cart = new HashMap<>();
+                 /*   Map<Long, Integer> cart = new HashMap<>();
                     session.getAttributes().put("cart", cart);
 
 
@@ -39,12 +39,13 @@ public class CustomAuthenticationSuccessHandler implements ServerAuthenticationS
                         log.info("Created cart and stored userId {} for user {}", userId, authentication.getName());
                     } else {
                         log.info("Created cart for user {}", authentication.getName());
-                    }
+                    }*/
+                    System.out.println("custom");
                 })
                 .then(Mono.defer(() -> {
                     ServerHttpResponse response = exchange.getResponse();
-                    response.setStatusCode(HttpStatus.FOUND);
-                    response.getHeaders().setLocation(URI.create("/"));
+                  /*  response.setStatusCode(HttpStatus.FOUND);
+                    response.getHeaders().setLocation(URI.create("/"));*/
                     return response.setComplete();
                 }));
     }
