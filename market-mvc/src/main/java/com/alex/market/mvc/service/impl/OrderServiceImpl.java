@@ -20,6 +20,7 @@ import com.alex.market.mvc.service.OrderService;
 import com.alex.market.mvc.service.PaymentApiClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -41,11 +42,12 @@ public class OrderServiceImpl implements OrderService {
     private final ItemMapper itemMapper;
     private final CartService cartService;
     private final PaymentApiClientService paymentApiClientService;
-    private final UserService userService;
 
-    public Mono<OrderPaymentDto> createAndProcessOrder(Map<Long, Integer> cartItemsCounts) {
-        log.info("Creating new order.Items in cart: {}", cartItemsCounts != null ? cartItemsCounts.size() : 0);
 
+
+    @PreAuthorize("hasAuthority('USER') or #userId==authentication.principal.id")
+    public Mono<OrderPaymentDto> createAndProcessOrderByUserId(Map<Long, Integer> cartItemsCounts, Long userId) {
+        log.info("Creating new order. Items in cart: {}", cartItemsCounts != null ? cartItemsCounts.size() : 0);
 
         return cartService.getItemsCartWithCounts(cartItemsCounts)
                 .flatMap(itemsCount -> {
@@ -55,11 +57,9 @@ public class OrderServiceImpl implements OrderService {
                             .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
                     log.info("Total sum of order: {}", totalSum);
 
-                    return userService.getCurrentUserId()
-                            .flatMap(userId -> {
-                                Order order = createNewOrder(userId, totalSum, OrderStatus.PENDING);
-                                return orderRepository.save(order);
-                            })
+                    Order order = createNewOrder(userId, totalSum, OrderStatus.PENDING);
+
+                    return orderRepository.save(order)
                             .flatMap(savedOrder -> {
                                 List<OrderItem> orderItems = itemsCount.entrySet().stream()
                                         .map(entry -> createOrderItem(entry, savedOrder.getId()))
