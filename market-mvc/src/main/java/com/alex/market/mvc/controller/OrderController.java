@@ -44,9 +44,9 @@ public class OrderController {
     }
 
     @PostMapping("/buy")
-    public Mono<String> createOrder(@SessionAttribute Map<Long, Integer> cart) {
+    public Mono<String> createOrder(@SessionAttribute(required = false) Map<Long, Integer> cart) {
         log.info("---endpoint 'createOrder' with cart:{} from session was started---", cart);
-
+        System.out.println("cartttt"+cart);
         return orderService.createAndProcessOrder(cart)
                 .map(dto -> {
                     if (dto.orderStatus().equals(OrderStatus.PAID.name())) {

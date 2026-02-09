@@ -34,7 +34,7 @@ public class ItemController {
                                     @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
                                     @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
                                     @RequestParam(required = false, defaultValue = "10") Integer pageSize,
-                                    @SessionAttribute("cart") Map<Long, Integer> cart) {
+                                    @SessionAttribute(required = false, name = "cart") Map<Long, Integer> cart) {
         log.info("---endpoint 'getItems' with input params: search={},sort={},cart={},pageNumber={},pageSize={} was started---",
                 search, sort, cart, pageNumber, pageSize);
 
@@ -93,7 +93,7 @@ public class ItemController {
 
     @GetMapping("/items/{id}")
     public Mono<Rendering> getItem(@PathVariable Long id,
-                                   @SessionAttribute("cart") Map<Long, Integer> cart) {
+                                   @SessionAttribute(required = false,name = "cart") Map<Long, Integer> cart) {
 
         log.info("---endpoint 'getItem' with id: {} and cart: {} from session was started---", id, cart);
 
@@ -109,7 +109,7 @@ public class ItemController {
                                                         @SessionAttribute Map<Long, Integer> cart
     ) {
         log.info("---endpoint 'changeCartItemCountForItemsPage' with input form params: {},{} was started---", params, cart);
-
+        System.out.println("caeeeeert:"+cart);
         return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .thenReturn("redirect:/items?search=" + params.search()
                             + "&sort=" + params.sort()

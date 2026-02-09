@@ -3,12 +3,15 @@ package com.alex.market.mvc.integration.controller;
 import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.model.CartAction;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import lombok.With;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,6 +31,7 @@ import static org.mockito.Mockito.when;
 
 @EnableWireMock(@ConfigureWireMock(name = "payment-service", port = 0))
 @TestPropertySource(properties = {"market.upload.payment-service-url=http://localhost:${wiremock.server.port}"})
+@WithMockUser(username = "tets",password = "test", authorities = "USER")
 class CartControllerIT extends BaseIntegrationTest {
 
     @MockitoBean(reset = MockReset.BEFORE)
@@ -54,7 +58,7 @@ class CartControllerIT extends BaseIntegrationTest {
     @Test
     void changeCartItemCountForCartPage_shouldRedirectToGetItemsSuccess() {
 
-        webTestClient.post()
+        webTestClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", String.valueOf(VALID_ID))
@@ -77,6 +81,7 @@ class CartControllerIT extends BaseIntegrationTest {
                 .willReturn(okJson(failedResponse)));
 
         webTestClient
+
                 .get()
                 .uri("/cart/items")
                 .exchange()

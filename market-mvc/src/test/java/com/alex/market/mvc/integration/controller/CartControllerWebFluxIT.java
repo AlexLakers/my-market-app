@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -30,6 +32,7 @@ import static org.mockito.Mockito.*;
 
 @WebFluxTest(CartController.class)
 @Import(ConfigProperties.class)
+@WithMockUser(username = "test",password = "test", authorities = "USER")
 class CartControllerWebFluxIT {
     private Map<Long, Integer> cartItemsCount;
 
@@ -58,7 +61,7 @@ class CartControllerWebFluxIT {
         when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(itemDto.count()));
         when(cartService.getItemsCartWithBalanceStatus(cartItemsCount)).thenReturn(Mono.just(expectedDto));
 
-        webTestClient.post()
+        webTestClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", String.valueOf(VALID_ID))

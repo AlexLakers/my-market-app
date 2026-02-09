@@ -12,12 +12,15 @@ public class TestDataLoader {
         databaseClient.sql("DELETE FROM orders_items").fetch().rowsUpdated().block();
         databaseClient.sql("DELETE FROM orders").fetch().rowsUpdated().block();
         databaseClient.sql("DELETE FROM items").fetch().rowsUpdated().block();
+        databaseClient.sql("DELETE FROM users").fetch().rowsUpdated().block();
 
         databaseClient.sql("SELECT setval(pg_get_serial_sequence('items', 'id'), 1002)")
                 .fetch().rowsUpdated().block();
         databaseClient.sql("SELECT setval(pg_get_serial_sequence('orders', 'id'), 1002)")
                 .fetch().rowsUpdated().block();
         databaseClient.sql("SELECT setval(pg_get_serial_sequence('orders_items', 'id'), 1002)")
+                .fetch().rowsUpdated().block();
+        databaseClient.sql("SELECT setval(pg_get_serial_sequence('users', 'id'), 1)")
                 .fetch().rowsUpdated().block();
 
         databaseClient.sql("""
@@ -28,10 +31,15 @@ public class TestDataLoader {
                 """).fetch().rowsUpdated().block();
 
         databaseClient.sql("""
-                INSERT INTO orders (id, total_sum,status) VALUES
-                (1000, 1000,'PAID'),
-                (1001, 50000,'PAID'),
-                (1002, 45000,'PAID')
+                INSERT INTO users (id, username,first_name,last_name,password,role,birthday) VALUES
+                (1, 'lakers@yandex.ru','alex','lakers','{noop}test','USER','1993-01-21')
+                """).fetch().rowsUpdated().block();
+
+        databaseClient.sql("""
+                INSERT INTO orders (id, total_sum,status,user_id) VALUES
+                (1000, 1000,'PAID',1),
+                (1001, 50000,'PAID',1),
+                (1002, 45000,'PAID',1)
                 """).fetch().rowsUpdated().block();
 
         databaseClient.sql("""

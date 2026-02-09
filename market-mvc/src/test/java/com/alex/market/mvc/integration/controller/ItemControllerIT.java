@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.HashMap;
@@ -78,7 +79,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     void createItem_shouldSet201StatusAndReturnHtmlPageNewImageSuccess() {
         ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/new")
                         .queryParam("title", givenDto.title())
@@ -100,7 +101,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     void createItem_shouldSet400StatusAndReturnHtmlPage400Fail() {
         ItemCreateDto givenDto = new ItemCreateDto("test1-ball", "description", 1000L);
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/new")
                         .queryParam("title", givenDto.title())
@@ -124,7 +125,7 @@ class ItemControllerIT extends BaseIntegrationTest {
                 .filename("image.jpg")
                 .contentType(MediaType.IMAGE_JPEG);
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{id}/images/new", VALID_ID)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(builder.build())
@@ -141,7 +142,7 @@ class ItemControllerIT extends BaseIntegrationTest {
                 .filename("image.jpg")
                 .contentType(MediaType.IMAGE_JPEG);
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{id}/images/new", INVALID_ID)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(builder.build())
@@ -186,7 +187,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
 
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items")
                         .queryParam("id", givenDto.itemId())
@@ -204,7 +205,7 @@ class ItemControllerIT extends BaseIntegrationTest {
 
     @Test
     void changeCartItemCountForItemPage_shouldSet200AndReturnItemPageWithModel() {
-        testClient.post()
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{itemId}?action=" + CartAction.PLUS.name(), VALID_ID)
                 .exchange()
                 .expectStatus().isOk()

@@ -24,7 +24,8 @@ public interface ItemMapper {
 
 
     default ItemDto toDto(Item item, Map<Long, Integer> cart, String imageBase64) {
-        Integer count = cart.getOrDefault(item.getId(), 0);
+        Integer count = (cart == null || !cart.containsKey(item.getId())) ? 0 : cart.get(item.getId());
+        //  Integer count = cart.getOrDefault(item.getId(), 0);
         return toDto(item, count, imageBase64);
     }
 
@@ -43,11 +44,14 @@ public interface ItemMapper {
     Item toItem(ItemCache itemCache);
 
     default ItemDto toDtoFromItemCacheWithImage(ItemCache itemCache, Map<Long, Integer> cart, String imageBase64) {
-        Integer count = cart.getOrDefault(itemCache.id(), 0);
+       // Integer count = cart.getOrDefault(itemCache.id(), 0);
+        Integer count = (cart == null || !cart.containsKey(itemCache.id())) ? 0 : cart.get(itemCache.id());
         return toItemDtoFromCache(itemCache, count, imageBase64);
     }
+
     default ItemDto toDtoFromItemCacheWithoutImage(ItemCache itemCache, Map<Long, Integer> cart) {
-        Integer count = cart.getOrDefault(itemCache.id(), 0);
+        // Integer count = cart.getOrDefault(itemCache.id(), 0);
+        Integer count = (cart == null || !cart.containsKey(itemCache.id())) ? 0 : cart.get(itemCache.id());
         return toItemDtoFromCache(itemCache, count, "");
     }
 
