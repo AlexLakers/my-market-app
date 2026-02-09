@@ -13,9 +13,11 @@ import reactor.core.publisher.Mono;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@Slf4j
 public class CartWebFilter implements WebFilter {
     private static final String SESSION_CART = "cart";
 
@@ -23,7 +25,7 @@ public class CartWebFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
 
-        if (path.startsWith("/images/") || path.startsWith("/static/")) {
+        if (isPublic(path)) {
             return chain.filter(exchange);
         }
 
@@ -31,14 +33,27 @@ public class CartWebFilter implements WebFilter {
                 .flatMap(session -> {
                     return exchange.getPrincipal()
                             .hasElement()
-                            .flatMap(hasPrincipal -> {
-                                if (!hasPrincipal) {
-                                 //   session.getAttributes().remove(SESSION_CART);
-                                    //session.getAttributes().put(SESSION_CART, new HashMap<>());
+                            .flatMap(isAuthenticated -> {
+                                if (!isAuthenticated) {
+                                    return chain.filter(exchange);
                                 }
+                                var attributes = session.getAttributes();
+                                attributes.putIfAbsent(SESSION_CART, new ConcurrentHashMap<>());
+                                log.info("The cart:{} for session: {}", (Map<Long, Integer>) attributes.get(SESSION_CART), session.getId());
                                 return chain.filter(exchange);
                             });
                 });
+    }
+
+    private boolean isPublic(String URI) {
+        Set<String> publicPages = Set.of(
+                "/images/",
+                "/static/",
+                "/login",
+                "/registration"
+        );
+
+        return publicPages.stream().anyMatch(URI::startsWith);
     }
 }
 
