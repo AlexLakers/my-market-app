@@ -11,6 +11,8 @@ import com.alex.market.mvc.model.OrderStatus;
 import com.alex.market.mvc.repository.OrderItemRepository;
 import com.alex.market.mvc.repository.OrderRepository;
 import com.alex.market.mvc.repository.projection.OrderItemsDetails;
+import com.alex.market.mvc.security.service.UserService;
+import com.alex.market.mvc.security.service.UserServiceImpl;
 import com.alex.market.mvc.service.impl.OrderServiceImpl;
 import com.alex.market.mvc.service.impl.PaymentApiClientServiceImpl;
 import org.assertj.core.api.Assertions;
@@ -49,6 +51,8 @@ class OrderServiceTest {
     private OrderRepository orderRepository;
     @Autowired
     private CartService cartService;
+    @Autowired
+    private UserService userService;
     @Autowired
     private PaymentApiClientService paymentApiClientService;
 
@@ -114,6 +118,7 @@ class OrderServiceTest {
         OrderPaymentDto expectedPaymentDto = new OrderPaymentDto(orderId, orderStatus);
         List<OrderItem> listOrderItem = List.of(OrderItem.builder().itemId(VALID_ID).orderId(orderId).count(2).historyPrice(1000L).build());
 
+        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
         when(cartService.getItemsCartWithCounts(cartItemsCount)).thenReturn(Mono.just(Map.of(item, 2)));
         when(orderItemRepository.saveAll(Mockito.anyCollection())).thenReturn(Flux.fromIterable(listOrderItem));
         when(orderRepository.save(Mockito.any(Order.class))).thenReturn(Mono.just(expectedOrder));
@@ -137,9 +142,21 @@ class OrderServiceTest {
         }
 
         @Bean
-        public OrderService orderService(PaymentApiClientService paymentApiClientService, OrderRepository orderRepository, OrderItemRepository orderItemRepository, ItemMapper itemMapper, CartService cartService) {
-            return new OrderServiceImpl(orderRepository, orderItemRepository, itemMapper, cartService, paymentApiClientService);
+        public UserService userService() {
+            return Mockito.mock(UserServiceImpl.class);
         }
+
+        @Bean
+        public OrderService orderService(PaymentApiClientService paymentApiClientService,
+                                         OrderRepository orderRepository,
+                                         OrderItemRepository orderItemRepository,
+                                         ItemMapper itemMapper,
+                                         CartService cartService,
+                                         UserService userService) {
+            return new OrderServiceImpl(orderRepository, orderItemRepository, itemMapper, cartService, paymentApiClientService, userService);
+        }
+
+
 
         @Bean
         public OrderRepository orderRepository() {
