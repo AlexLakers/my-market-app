@@ -78,10 +78,17 @@ class OrderControllerIT extends BaseIntegrationTest {
     }*/
 
     @Test
-    void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
+    void getAllOrdersForUser_shouldSet200AndReturnOrdersPageWithData() {
+
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "lakers@yandex.ru",
+                "password",
+                Collections.singletonList(new SimpleGrantedAuthority("USER")),
+                1L
+        );
 
         testClient
-                .mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
+                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
                 .get()
                 .uri("/orders")
                 .exchange()
@@ -123,7 +130,7 @@ class OrderControllerIT extends BaseIntegrationTest {
 
 
     @Test
-    void createAndProcessOrder_shouldRedirectWithFailedStatus_Failed() {
+    void createAndProcessOrderForUser_shouldRedirectWithFailedStatus_Failed() {
 
         CustomUserDetails userDetails = new CustomUserDetails(
                 "lakers@yandex.ru",
@@ -147,7 +154,7 @@ class OrderControllerIT extends BaseIntegrationTest {
     }
 
     @Test
-    void createAndProcessOrder_shouldCreateAndProcessOrderRedirectToNewOrderPage_Success() {
+    void createAndProcessOrderForUser_shouldCreateAndProcessOrderRedirectToNewOrderPage_Success() {
 
         CustomUserDetails userDetails = new CustomUserDetails(
                 "lakers@yandex.ru",

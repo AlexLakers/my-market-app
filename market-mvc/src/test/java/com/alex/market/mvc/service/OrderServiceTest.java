@@ -51,8 +51,8 @@ class OrderServiceTest {
     private OrderRepository orderRepository;
     @Autowired
     private CartService cartService;
-    @Autowired
-    private UserService userService;
+   /* @Autowired
+    private UserService userService;*/
     @Autowired
     private PaymentApiClientService paymentApiClientService;
 
@@ -71,11 +71,11 @@ class OrderServiceTest {
     @Test
     void getAllPaidOrders_shouldReturnOrderDtoListSuccess() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        when(orderRepository.findAllByStatus(OrderStatus.PAID)).thenReturn(Flux.fromIterable(List.of(Order.builder().id(VALID_ID).totalSum(1000L).build())));
+        when(orderRepository.findAllByStatusAndUserId(OrderStatus.PAID,VALID_ID)).thenReturn(Flux.fromIterable(List.of(Order.builder().id(VALID_ID).totalSum(1000L).build())));
         when(orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID)).thenReturn(Flux.fromIterable(List.of(orderItemsDetails)));
         when(itemMapper.toDtoFromOrderItemDetails(orderItemsDetails)).thenReturn(itemDto);
 
-        List<OrderDto> actualDto = orderService.findAllPaidOrders().collectList().block();
+        List<OrderDto> actualDto = orderService.findAllPaidOrdersByUserId(VALID_ID).collectList().block();
 
         assertThat(actualDto).hasSize(1).contains(orderDto);
     }
@@ -111,20 +111,20 @@ class OrderServiceTest {
             "1, 1, SERVICE_ERROR, '','PENDING'"
 
     })
-    void createAndProcessOrder_shouldCreateAndProcessOrderAndReturnDtoWithPaymentStatus(Long orderId, Long txId, String paymentStatus, String failureReasonFromApi, String orderStatus) {
+    void createAndProcessOrder_shouldCreateAndProcessOrderAndReturnDtoWithPaymentStatusByUserId(Long orderId, Long txId, String paymentStatus, String failureReasonFromApi, String orderStatus) {
         Item item = Item.builder().id(VALID_ID).price(1000L).title("title").description("descr").build();
         Order expectedOrder = Order.builder().id(orderId).build();
         PaymentDto paymentResponseDto = new PaymentDto(PaymentApiStatus.valueOf(paymentStatus), orderId, txId, failureReasonFromApi);
         OrderPaymentDto expectedPaymentDto = new OrderPaymentDto(orderId, orderStatus);
         List<OrderItem> listOrderItem = List.of(OrderItem.builder().itemId(VALID_ID).orderId(orderId).count(2).historyPrice(1000L).build());
 
-        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
+      /*  when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));*/
         when(cartService.getItemsCartWithCounts(cartItemsCount)).thenReturn(Mono.just(Map.of(item, 2)));
         when(orderItemRepository.saveAll(Mockito.anyCollection())).thenReturn(Flux.fromIterable(listOrderItem));
         when(orderRepository.save(Mockito.any(Order.class))).thenReturn(Mono.just(expectedOrder));
         when(paymentApiClientService.processPaymentInTransaction(Mockito.any(PaymentRequest.class))).thenReturn(Mono.just(paymentResponseDto));
 
-        StepVerifier.create(orderService.createAndProcessOrder(cartItemsCount))
+        StepVerifier.create(orderService.createAndProcessOrderByUserId(cartItemsCount,VALID_ID))
                 .expectNext(expectedPaymentDto)
                 .verifyComplete();
     }
@@ -141,19 +141,18 @@ class OrderServiceTest {
             return Mockito.mock(PaymentApiClientServiceImpl.class);
         }
 
-        @Bean
+      /*  @Bean
         public UserService userService() {
             return Mockito.mock(UserServiceImpl.class);
-        }
+        }*/
 
         @Bean
         public OrderService orderService(PaymentApiClientService paymentApiClientService,
                                          OrderRepository orderRepository,
                                          OrderItemRepository orderItemRepository,
                                          ItemMapper itemMapper,
-                                         CartService cartService,
-                                         UserService userService) {
-            return new OrderServiceImpl(orderRepository, orderItemRepository, itemMapper, cartService, paymentApiClientService, userService);
+                                         CartService cartService) {
+            return new OrderServiceImpl(orderRepository, orderItemRepository, itemMapper, cartService, paymentApiClientService);
         }
 
 

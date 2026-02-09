@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
 public interface OrderRepository extends R2dbcRepository<Order, Long> {
-    Flux<Order> findAllByStatus(OrderStatus status);
+    Flux<Order> findAllByStatusAndUserId(OrderStatus status,Long userId);
 }

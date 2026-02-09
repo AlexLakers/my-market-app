@@ -1,6 +1,7 @@
 package com.alex.market.mvc.controller;
 
 import com.alex.market.mvc.model.OrderStatus;
+import com.alex.market.mvc.security.service.UserService;
 import com.alex.market.mvc.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,16 +18,18 @@ import java.util.Map;
 @Slf4j
 public class OrderController {
     private final OrderService orderService;
+    private final UserService userService;
 
     @GetMapping("/orders")
-    public Mono<Rendering> getAllOrders() {
-        return orderService.findAllPaidOrders()
-                .collectList()
-                .map(orders -> Rendering
-                        .view("orders")
-                        .modelAttribute("orders", orders)
-                        .status(HttpStatus.OK)
-                        .build());
+    public Mono<Rendering> getAllOrdersForUser() {
+        return userService.getCurrentUserId()
+                .flatMap(userId -> orderService.findAllPaidOrdersByUserId(userId)
+                        .collectList()
+                        .map(orders -> Rendering
+                                .view("orders")
+                                .modelAttribute("orders", orders)
+                                .status(HttpStatus.OK)
+                                .build()));
     }
 
     @GetMapping("/orders/{id}")
@@ -44,16 +47,16 @@ public class OrderController {
     }
 
     @PostMapping("/buy")
-    public Mono<String> createOrder(@SessionAttribute(required = false) Map<Long, Integer> cart) {
+    public Mono<String> createOrderForUser(@SessionAttribute(required = false) Map<Long, Integer> cart) {
         log.info("---endpoint 'createOrder' with cart:{} from session was started---", cart);
-        System.out.println("cartttt"+cart);
-        return orderService.createAndProcessOrder(cart)
-                .map(dto -> {
-                    if (dto.orderStatus().equals(OrderStatus.PAID.name())) {
-                        cart.clear();
-                        return "redirect:/orders/" + dto.orderId() + "?newOrder=true";
-                    }
-                    else return "redirect:/cart/items" + "?paymentOrderStatus=" + dto.orderStatus();
-                });
+
+        return userService.getCurrentUserId()
+                .flatMap(userId -> orderService.createAndProcessOrderByUserId(cart, userId)
+                        .map(dto -> {
+                            if (dto.orderStatus().equals(OrderStatus.PAID.name())) {
+                                cart.clear();
+                                return "redirect:/orders/" + dto.orderId() + "?newOrder=true";
+                            } else return "redirect:/cart/items" + "?paymentOrderStatus=" + dto.orderStatus();
+                        }));
     }
 }

@@ -8,11 +8,11 @@ import com.alex.market.mvc.dto.output.OrderPaymentDto;
 import com.alex.market.mvc.exception.OrderNotFoundException;
 import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.security.config.SecurityConfig;
+import com.alex.market.mvc.security.service.UserService;
 import com.alex.market.mvc.service.OrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -23,7 +23,6 @@ import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.server.ServerWebExchange;
-import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,7 +34,7 @@ import java.util.Map;
 import static org.mockito.Mockito.*;
 
 @WebFluxTest(OrderController.class)
-@Import({ConfigProperties.class, TestCartFilterConfig.class})
+@Import(ConfigProperties.class)
 @ActiveProfiles("test")
 @WithMockUser(username = "test",password = "test", authorities = "USER")
 class OrderControllerWebFluxIT {
@@ -60,12 +59,16 @@ class OrderControllerWebFluxIT {
     @MockitoBean(reset = MockReset.BEFORE)
     private OrderService orderService;
 
+    @MockitoBean(reset = MockReset.BEFORE)
+    private UserService userService;
+
 
     @Test
-    void getAllOrders_shouldSet200AndReturnOrdersPageWithData() {
+    void getAllOrders_shouldSet200AndReturnOrdersForUserPageWithData() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        when(orderService.findAllPaidOrders()).thenReturn(Flux.fromIterable(List.of(orderDto)));
+        when(orderService.findAllPaidOrdersByUserId(VALID_ID)).thenReturn(Flux.fromIterable(List.of(orderDto)));
+        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
 
         testClient.get()
                 .uri("/orders")
@@ -111,9 +114,10 @@ class OrderControllerWebFluxIT {
     }
 
     @Test
-    void createOrder_shouldSet201AndRedirectToOrderPage() {
+    void createOrder_shouldSet201AndRedirectToOrderForUserPage() {
         OrderPaymentDto orderPaymentDto = new OrderPaymentDto(VALID_ID,"PAID");
-        when(orderService.createAndProcessOrder(anyMap())).thenReturn(Mono.just(orderPaymentDto));
+        when(orderService.createAndProcessOrderByUserId(anyMap(),anyLong())).thenReturn(Mono.just(orderPaymentDto));
+        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/buy")
