@@ -5,6 +5,7 @@ import com.alex.market.mvc.security.model.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
@@ -20,6 +21,7 @@ import org.springframework.security.web.server.authentication.logout.RedirectSer
 import org.springframework.security.web.server.authentication.logout.WebSessionServerLogoutHandler;
 import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository;
 import org.springframework.web.server.session.InMemoryWebSessionStore;
+import reactor.core.publisher.Mono;
 
 @Configuration
 @RequiredArgsConstructor
@@ -35,7 +37,7 @@ public class SecurityConfig {
         http
                 .securityContextRepository(new WebSessionServerSecurityContextRepository())
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-               /* .csrf(ServerHttpSecurity.CsrfSpec::disable)*/
+                /* .csrf(ServerHttpSecurity.CsrfSpec::disable)*/
                 .authorizeExchange(authorizeExchangeSpec -> authorizeExchangeSpec.pathMatchers("/orders/**", "/cart/**", "/buy").hasAuthority(Role.USER.getAuthority()))
                 .authorizeExchange(authorizeExchangeSpec -> authorizeExchangeSpec.pathMatchers("/**", "/items/**", "/static/**", "/images/**", "/login/**", "/register").permitAll())
                 .formLogin(login -> login
@@ -54,6 +56,9 @@ public class SecurityConfig {
                         .logoutHandler(new WebSessionServerLogoutHandler())
                         .logoutSuccessHandler(new RedirectServerLogoutSuccessHandler())
                 )
+                .exceptionHandling(handling -> handling
+                        .accessDeniedHandler((exchange, denied) ->
+                                Mono.error(new AccessDeniedException("Access Denied"))))
                 .addFilterAfter(cartWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         return http.build();
     }
