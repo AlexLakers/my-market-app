@@ -27,8 +27,10 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http
+               .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
-                        .anyExchange().hasAuthority("PAYMENT-ACCESS").anyExchange().denyAll()
+                        .pathMatchers("/api/payments/**").hasAuthority("PAYMENT-ACCESS")
+                        .anyExchange().denyAll()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwtSpec -> jwtSpec.jwtAuthenticationConverter(jwtAuthenticationConverter())));
