@@ -16,6 +16,11 @@ import org.springframework.security.core.session.InMemoryReactiveSessionRegistry
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.*;
 import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
@@ -23,6 +28,8 @@ import org.springframework.security.web.server.authentication.logout.WebSessionS
 import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository;
 import org.springframework.web.server.session.InMemoryWebSessionStore;
 import reactor.core.publisher.Mono;
+
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @RequiredArgsConstructor
@@ -46,6 +53,7 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .authenticationSuccessHandler(new RedirectServerAuthenticationSuccessHandler("/"))
                 )
+                .oauth2Client(withDefaults())
                 .sessionManagement(sessionManagementSpec -> {
                     sessionManagementSpec.concurrentSessions(concurrency -> {
                         concurrency.maximumSessions(SessionLimit.of(3))
@@ -63,5 +71,23 @@ public class SecurityConfig {
                                 Mono.error(new AccessDeniedException("Access Denied"))))
                 .addFilterAfter(cartWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         return http.build();
+    }
+
+
+    @Bean
+    ReactiveOAuth2AuthorizedClientManager auth2AuthorizedClientManager(
+            ReactiveClientRegistrationRepository clientRegistrationRepository,
+            ReactiveOAuth2AuthorizedClientService authorizedClientService
+    ) {
+        AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager manager =
+                new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(clientRegistrationRepository, authorizedClientService);
+
+        manager.setAuthorizedClientProvider(ReactiveOAuth2AuthorizedClientProviderBuilder.builder()
+                .clientCredentials()
+                .refreshToken()
+                .build()
+        );
+
+        return manager;
     }
 }
