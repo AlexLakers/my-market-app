@@ -23,6 +23,7 @@ import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClient
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.*;
+import org.springframework.security.web.server.authentication.logout.HttpStatusReturningServerLogoutSuccessHandler;
 import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
 import org.springframework.security.web.server.authentication.logout.WebSessionServerLogoutHandler;
 import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository;
@@ -40,15 +41,18 @@ public class SecurityConfig {
     private final CartWebFilter cartWebFilter;
 
     @Bean
-    public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) throws Exception {
+    public SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http){
 
 
         http
                 .securityContextRepository(new WebSessionServerSecurityContextRepository())
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
-                /* .csrf(ServerHttpSecurity.CsrfSpec::disable)*/
-                .authorizeExchange(authorizeExchangeSpec -> authorizeExchangeSpec.pathMatchers("/orders/**", "/cart/**", "/buy").hasAuthority(Role.USER.getAuthority()))
-                .authorizeExchange(authorizeExchangeSpec -> authorizeExchangeSpec.pathMatchers("/**", "/items/**", "/static/**", "/images/**", "/login/**", "/register").permitAll())
+                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .authorizeExchange(exchanges -> exchanges
+                        .pathMatchers("/orders/**", "/cart/**", "/buy").hasAuthority(Role.USER.getAuthority())
+                        .pathMatchers("/**", "/items/**", "/static/**", "/images/**", "/logout/**", "/login/**", "/register").permitAll()
+                        .anyExchange().denyAll()
+                )
                 .formLogin(login -> login
                         .loginPage("/login")
                         .authenticationSuccessHandler(new RedirectServerAuthenticationSuccessHandler("/"))
@@ -66,9 +70,9 @@ public class SecurityConfig {
                         .logoutHandler(new WebSessionServerLogoutHandler())
                         .logoutSuccessHandler(new RedirectServerLogoutSuccessHandler())
                 )
-                .exceptionHandling(handling -> handling
+                /*.exceptionHandling(handling -> handling
                         .accessDeniedHandler((exchange, denied) ->
-                                Mono.error(new AccessDeniedException("Access Denied"))))
+                                Mono.error(new AccessDeniedException("Access Denied"))))*/
                 .addFilterAfter(cartWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
         return http.build();
     }

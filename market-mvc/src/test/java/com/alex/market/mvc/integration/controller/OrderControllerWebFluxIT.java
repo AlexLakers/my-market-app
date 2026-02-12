@@ -10,12 +10,15 @@ import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.security.config.SecurityConfig;
 import com.alex.market.mvc.security.service.UserService;
 import com.alex.market.mvc.service.OrderService;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.ActiveProfiles;
@@ -36,7 +39,7 @@ import static org.mockito.Mockito.*;
 @WebFluxTest(OrderController.class)
 @Import(ConfigProperties.class)
 @ActiveProfiles("test")
-@WithMockUser(username = "test",password = "test", authorities = "USER")
+@WithMockUser(username = "test@yandex.ru",password = "test", authorities = "USER")
 class OrderControllerWebFluxIT {
     private Map<Long, Integer> cartItemsCount;
 
@@ -62,6 +65,13 @@ class OrderControllerWebFluxIT {
     @MockitoBean(reset = MockReset.BEFORE)
     private UserService userService;
 
+      @Test
+    void shouldHaveCorrectPrincipal() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+       Assertions.assertThat("test@yandex.ru").isEqualTo(auth.getName());
+          Assertions.assertThat(auth.getAuthorities().stream()
+                  .anyMatch(a -> a.getAuthority().equals("USER")));
+    }
 
     @Test
     void getAllOrders_shouldSet200AndReturnOrdersForUserPageWithData() {

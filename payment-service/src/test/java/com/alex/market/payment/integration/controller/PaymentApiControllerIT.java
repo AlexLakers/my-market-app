@@ -50,6 +50,17 @@ class PaymentApiControllerIT extends BaseIntegrationTest {
                 .expectBody(AccountResponse.class)
                 .value(json -> assertEquals(accountResponse, json));
     }
+    @Test
+    void getAccountById_shouldSet403Status_whenAuthoritiesIsNotEnough() {
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                        .authorities(new SimpleGrantedAuthority("NOT-VALID-ROLE"))
+                        .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .get()
+                .uri("/api/payments/accounts/{accountId}", VALID_ID)
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
 
     @Test
     void getAccountById_shouldSet404StatusAndErrorMessageBody() {

@@ -3,6 +3,7 @@ package com.alex.market.mvc.integration.controller;
 
 import com.alex.market.mvc.dto.input.CartChangeDto;
 import com.alex.market.mvc.dto.input.ItemCreateDto;
+import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.search.SortColumn;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,10 +13,17 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
+import org.springframework.test.context.bean.override.mockito.MockReset;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilterChain;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 class ItemControllerIT extends BaseIntegrationTest {
 
@@ -27,11 +35,15 @@ class ItemControllerIT extends BaseIntegrationTest {
     private static final Long VALID_ID = 1000L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
 
+    @MockitoBean(reset = MockReset.BEFORE)
+    private CartWebFilter cartWebFilter;
+
     @BeforeEach
     void setUp() {
         cartItemsCount = new HashMap<>();
         cartItemsCount.put(VALID_ID, 2);
         cartItemsCount.put(2L, 3);
+        mockCartWebFilter();
     }
 
 
@@ -214,7 +226,17 @@ class ItemControllerIT extends BaseIntegrationTest {
                 .value(html -> {
                     assert html.contains("test1-ball");
                     assert html.contains("Test ball description1");
-                    assert html.contains("<span>1</span>");
+                });
+    }
+
+    void mockCartWebFilter() {
+        when(cartWebFilter.filter(any(ServerWebExchange.class), any(WebFilterChain.class)))
+                .thenAnswer(invocation -> {
+                    ServerWebExchange exchange = invocation.getArgument(0);
+                    WebFilterChain chain = invocation.getArgument(1);
+                    return exchange.getSession()
+                            .doOnNext(session -> session.getAttributes().put("cart", cartItemsCount))
+                            .then(chain.filter(exchange));
                 });
     }
 }

@@ -12,6 +12,9 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.test.context.support.TestExecutionEvent;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
@@ -26,10 +29,8 @@ import org.wiremock.spring.ConfigureWireMock;
 import org.wiremock.spring.EnableWireMock;
 import org.wiremock.spring.InjectWireMock;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
+import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -40,10 +41,6 @@ import static org.mockito.Mockito.when;
 
 @EnableWireMock(@ConfigureWireMock(name = "payment-service", port = 0))
 @TestPropertySource(properties = {"market.upload.payment-service-url=http://localhost:${wiremock.server.port}"})
-/*@WithUserDetails(
-        value = "lakers@yandex.ru",
-        setupBefore = TestExecutionEvent.TEST_EXECUTION
-)*/
 class OrderControllerIT extends BaseIntegrationTest {
     private static final Long VALID_ID = 1000L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
@@ -69,13 +66,6 @@ class OrderControllerIT extends BaseIntegrationTest {
     @Autowired
     private WebTestClient testClient;
 
-   /* @Test
-    void shouldHaveCorrectPrincipal() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        assertEquals("lakers@yandex.ru", auth.getName());
-        assertTrue(auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("USER")));
-    }*/
 
     @Test
     void getAllOrdersForUser_shouldSet200AndReturnOrdersPageWithData() {
@@ -139,6 +129,14 @@ class OrderControllerIT extends BaseIntegrationTest {
                 1L
         );
 
+        OAuth2AccessToken accessToken = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                "fake-access-token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Set.of("PAYMENT-ACCESS", "write")
+        );
+
         String failedResponse = "{\"accountId\":1,\"orderId\":1,\"transactionId\":31,\"status\":\"FAILED\",\"failureReason\":\"Amount must be positive and account with id: 1\",\"amount\":1000}";
 
         mockPaymentService.stubFor(post("/api/payments/pay")
@@ -146,6 +144,15 @@ class OrderControllerIT extends BaseIntegrationTest {
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
                 .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .mutateWith(SecurityMockServerConfigurers.mockOAuth2Client()
+                        .clientRegistration(ClientRegistration.withRegistrationId("keycloak-test")
+                                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                                .clientId("market-mvc-test")
+                                .tokenUri("keycloak-test/token")
+                                .build())
+                        .principalName("market-mvc-test")
+                        .accessToken(accessToken)
+                )
                 .post()
                 .uri("/buy")
                 .exchange()
@@ -163,12 +170,29 @@ class OrderControllerIT extends BaseIntegrationTest {
                 1L
         );
 
+        OAuth2AccessToken accessToken = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                "fake-access-token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Set.of("PAYMENT-ACCESS", "write")
+        );
+
         final long newSavedId = 1L;
         mockPaymentService.stubFor(post("/api/payments/pay")
                 .willReturn(okJson("{\"accountId\":1,\"orderId\":1,\"transactionId\":30,\"status\":\"SUCCESS\",\"amount\":1000}")));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
                 .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .mutateWith(SecurityMockServerConfigurers.mockOAuth2Client()
+                        .clientRegistration(ClientRegistration.withRegistrationId("keycloak-test")
+                                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                                .clientId("market-mvc-test")
+                                .tokenUri("keycloak-test/token")
+                                .build())
+                        .principalName("market-mvc-test")
+                        .accessToken(accessToken)
+                )
                 .post()
                 .uri("/buy")
                 .exchange()
@@ -187,6 +211,27 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .value(html -> {
                     assert html.contains("Заказ №" + newSavedId);
                 });
+    }
+
+    @Test
+    void createAndProcessOrderForUser_shouldSet403status_whenAuthoritiesIsNotEnough() {
+
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "test@yandex.ru",
+                "password",
+                Collections.singletonList(new SimpleGrantedAuthority("ANONYMOUS")),
+                1L
+        );
+
+        mockPaymentService.stubFor(post("/api/payments/pay")
+                .willReturn(okJson("{\"accountId\":1,\"orderId\":1,\"transactionId\":30,\"status\":\"SUCCESS\",\"amount\":1000}")));
+
+        testClient.mutateWith(SecurityMockServerConfigurers.csrf())
+                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .post()
+                .uri("/buy")
+                .exchange()
+                .expectStatus().isForbidden();
     }
 
     void mockCartWebFilter() {
