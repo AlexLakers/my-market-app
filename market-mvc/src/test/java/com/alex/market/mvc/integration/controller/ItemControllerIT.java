@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -48,6 +50,7 @@ class ItemControllerIT extends BaseIntegrationTest {
 
 
     @Test
+    @WithAnonymousUser
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel() {
 
         testClient
@@ -70,6 +73,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithAnonymousUser
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel_whenParamsNotGiven() {
 
         testClient
@@ -88,6 +92,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(username = "test@yandex.ru",password = "password",authorities = "USER")
     void createItem_shouldSet201StatusAndReturnHtmlPageNewImageSuccess() {
         ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
 
@@ -110,6 +115,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = "USER")
     void createItem_shouldSet400StatusAndReturnHtmlPage400Fail() {
         ItemCreateDto givenDto = new ItemCreateDto("test1-ball", "description", 1000L);
 
@@ -131,6 +137,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = "USER")
     void updateImageById_shouldUpdateImageByItemIdSuccess() {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
@@ -148,6 +155,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = "USER")
     void updateImageById_shouldSet404StatusAndReturnErrorPage_whenItemNotFountFail() {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
@@ -167,6 +175,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithAnonymousUser
     void getItemByIdWithCartCount_shouldSet200AndReturnItemByIdSuccess() {
 
         testClient.get()
@@ -182,6 +191,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithAnonymousUser
     void getItemByIdWithCartCount_shouldSet404AndReturnErrorPageFail() {
 
         testClient.get()
@@ -196,6 +206,7 @@ class ItemControllerIT extends BaseIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = "USER")
     void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
 
@@ -215,7 +226,9 @@ class ItemControllerIT extends BaseIntegrationTest {
                 .expectBody(String.class);
     }
 
+
     @Test
+    @WithMockUser(authorities = "USER")
     void changeCartItemCountForItemPage_shouldSet200AndReturnItemPageWithModel() {
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{itemId}?action=" + CartAction.PLUS.name(), VALID_ID)
