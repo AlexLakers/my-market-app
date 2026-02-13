@@ -77,6 +77,20 @@ class CartControllerIT extends BaseIntegrationTest {
                 .expectHeader().location("/cart/items");
     }
 
+    @Test
+    void changeCartItemCountForCartPage_shouldRedirectToLoginPage_whenUserIsNotAuthorized() {
+
+        webTestClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/cart/items")
+                        .queryParam("id", String.valueOf(VALID_ID))
+                        .queryParam("action", CartAction.PLUS.name())
+                        .build())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/login");
+    }
+
     @ParameterizedTest
     @CsvSource({
             "20000, SUCCESS, Купить",
@@ -151,8 +165,20 @@ class CartControllerIT extends BaseIntegrationTest {
                 .uri("/cart/items")
                 .exchange()
                 .expectStatus().isForbidden();
+    }
+    @Test
+    void getItemsCartWithBalanceStatus_shouldRedirectToLoginPage_whenUserIsNotAuthorized() {
+        String failedResponse = String.format("{\"accountId\":1,\"balance\":%1$d,\"status\":\"%1%s\"}", 1000, "STATUS");
 
+        mockPaymentService.stubFor(get("/api/payments/accounts/1")
+                .willReturn(okJson(failedResponse)));
 
+        webTestClient
+                .mutateWith(SecurityMockServerConfigurers.csrf())
+                .get()
+                .uri("/cart/items")
+                .exchange()
+                .expectStatus().is3xxRedirection().expectHeader().location("/login");
     }
 
 
