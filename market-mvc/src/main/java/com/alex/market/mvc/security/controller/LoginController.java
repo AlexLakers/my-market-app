@@ -20,7 +20,6 @@ public class LoginController {
                                          @RequestParam(name = "error", required = false) String error,
                                          ServerWebExchange exchange
                                          ) {
-        /* System.out.println(passwordEncoder.encode("testUser"));*/
         MultiValueMap<String, String> queryParams = exchange.getRequest().getQueryParams();
         boolean hasError = queryParams.containsKey("error");
         boolean hasLogout = queryParams.containsKey("logout");

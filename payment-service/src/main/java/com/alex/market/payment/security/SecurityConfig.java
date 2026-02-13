@@ -28,6 +28,7 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         http
                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/payments/**").hasAuthority("PAYMENT-ACCESS")
                         .anyExchange().denyAll()
