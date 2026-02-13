@@ -33,17 +33,18 @@ public class OrderController {
     }
 
     @GetMapping("/orders/{id}")
-    public Mono<Rendering> getOrderById(@PathVariable("id") Long id,
-                                        @RequestParam(defaultValue = "false") boolean newOrder) {
+    public Mono<Rendering> getOrderByIdForUser(@PathVariable("id") Long id,
+                                               @RequestParam(defaultValue = "false") boolean newOrder) {
         log.info("---endpoint 'getOrderById' with input params: newOrder:{} and id:{} was started---", newOrder, id);
 
-        return orderService.findOrderWithItems(id)
-                .map(orderDto -> Rendering
-                        .view("order")
-                        .modelAttribute("order", orderDto)
-                        .modelAttribute("newOrder", newOrder)
-                        .status(HttpStatus.OK)
-                        .build());
+        return userService.getCurrentUserId()
+                .flatMap(userId -> orderService.findOrderWithItemsByUserId(id, userId)
+                        .map(orderDto -> Rendering
+                                .view("order")
+                                .modelAttribute("order", orderDto)
+                                .modelAttribute("newOrder", newOrder)
+                                .status(HttpStatus.OK)
+                                .build()));
     }
 
     @PostMapping("/buy")

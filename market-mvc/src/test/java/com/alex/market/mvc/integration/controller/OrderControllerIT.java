@@ -91,8 +91,16 @@ class OrderControllerIT extends BaseIntegrationTest {
     }
 
     @Test
-    void getOrderById_shouldReturnOneDtoAndViewSuccess() {
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
+    void getOrderById_ForUser_shouldReturnOneDtoAndViewSuccess() {
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "lakers@yandex.ru",
+                "password",
+                Collections.singletonList(new SimpleGrantedAuthority("USER")),
+                1L
+        );
+
+
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
                 .get()
                 .uri("/orders/" + VALID_ID)
                 .exchange()
@@ -105,8 +113,16 @@ class OrderControllerIT extends BaseIntegrationTest {
     }
 
     @Test
-    void getOrderById_shouldSetStatus404_whenNotFoundFail() {
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser("testUser").password("testPassword").authorities("USER"))
+    void getOrderById_ForUser_shouldSetStatus404_whenNotFoundFail() {
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "lakers@yandex.ru",
+                "password",
+                Collections.singletonList(new SimpleGrantedAuthority("USER")),
+                1L
+        );
+
+
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
                 .get()
                 .uri("/orders/" + INVALID_ID)
                 .exchange()
@@ -116,6 +132,22 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .value(html -> {
                     assert html.contains("404");
                 });
+    }
+
+    @Test
+    void getOrderById_ForUser_shouldSet403_whenUserHasNotEnoughAuthority_fail() {
+        CustomUserDetails userDetails = new CustomUserDetails(
+                "lakers@yandex.ru",
+                "password",
+                Collections.singletonList(new SimpleGrantedAuthority("NOT-VALID-USER")),
+                1L
+        );
+
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .get()
+                .uri("/orders/" + VALID_ID)
+                .exchange()
+                .expectStatus().isForbidden();
     }
 
 
@@ -200,8 +232,7 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .expectHeader().location("/orders/" + newSavedId + "?newOrder=true")
                 .expectBody(String.class);
 
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser()
-                        .authorities("USER"))
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
                 .get()
                 .uri("/orders/{id}", newSavedId)
                 .exchange()
@@ -216,18 +247,11 @@ class OrderControllerIT extends BaseIntegrationTest {
     @Test
     void createAndProcessOrderForUser_shouldSet403status_whenAuthoritiesIsNotEnough() {
 
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "test@yandex.ru",
-                "password",
-                Collections.singletonList(new SimpleGrantedAuthority("ANONYMOUS")),
-                1L
-        );
-
         mockPaymentService.stubFor(post("/api/payments/pay")
                 .willReturn(okJson("{\"accountId\":1,\"orderId\":1,\"transactionId\":30,\"status\":\"SUCCESS\",\"amount\":1000}")));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
-                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+        .mutateWith(SecurityMockServerConfigurers.mockUser().authorities("NOT-VALID-ROLE"))
                 .post()
                 .uri("/buy")
                 .exchange()

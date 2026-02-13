@@ -7,7 +7,6 @@ import com.alex.market.mvc.dto.output.OrderDto;
 import com.alex.market.mvc.dto.output.OrderPaymentDto;
 import com.alex.market.mvc.exception.OrderNotFoundException;
 import com.alex.market.mvc.filter.CartWebFilter;
-import com.alex.market.mvc.security.config.SecurityConfig;
 import com.alex.market.mvc.security.service.UserService;
 import com.alex.market.mvc.service.OrderService;
 import org.assertj.core.api.Assertions;
@@ -92,10 +91,11 @@ class OrderControllerWebFluxIT {
     }
 
     @Test
-    void getOrderById_shouldReturnOneDtoAndViewSuccess() {
+    void getOrderById_ForUser_shouldReturnOneDtoAndViewSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
+        when(orderService.findOrderWithItemsByUserId(VALID_ID,VALID_ID)).thenReturn(Mono.just(orderDto));
+        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
 
         testClient.get()
                 .uri("/orders/" + VALID_ID)
@@ -109,9 +109,9 @@ class OrderControllerWebFluxIT {
     }
 
     @Test
-    void getOrderById_shouldSetStatus404_whenNotFoundFail() {
-        when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
-
+    void getOrderById_ForUser_shouldSetStatus404_whenNotFoundFail() {
+        when(orderService.findOrderWithItemsByUserId(INVALID_ID,VALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
+        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
         testClient.get()
                 .uri("/orders/" + INVALID_ID)
                 .exchange()

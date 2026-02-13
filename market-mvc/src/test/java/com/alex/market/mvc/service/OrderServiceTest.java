@@ -11,8 +11,6 @@ import com.alex.market.mvc.model.OrderStatus;
 import com.alex.market.mvc.repository.OrderItemRepository;
 import com.alex.market.mvc.repository.OrderRepository;
 import com.alex.market.mvc.repository.projection.OrderItemsDetails;
-import com.alex.market.mvc.security.service.UserService;
-import com.alex.market.mvc.security.service.UserServiceImpl;
 import com.alex.market.mvc.service.impl.OrderServiceImpl;
 import com.alex.market.mvc.service.impl.PaymentApiClientServiceImpl;
 import org.assertj.core.api.Assertions;
@@ -80,26 +78,26 @@ class OrderServiceTest {
     }
 
     @Test
-    void findOrderWithItems_shouldReturnOrderDtoByIdSuccess() {
+    void findOrderWithItemsByUserId_shouldReturnOrderDtoByIdSuccessByUserId() {
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
         Order order = Order.builder().id(VALID_ID).totalSum(1000L).build();
         when(orderRepository.findById(VALID_ID)).thenReturn(Mono.just(order));
         when(orderItemRepository.findItemsWithDetailsByOrderId(VALID_ID)).thenReturn(Flux.fromIterable(List.of(orderItemsDetails)));
         when(itemMapper.toDtoFromOrderItemDetails(orderItemsDetails)).thenReturn(itemDto);
 
-        OrderDto actualOrderDto = orderService.findOrderWithItems(VALID_ID).block();
+        OrderDto actualOrderDto = orderService.findOrderWithItemsByUserId(VALID_ID,VALID_ID).block();
 
         Assertions.assertThat(actualOrderDto).isEqualTo(orderDto);
     }
 
     @Test
-    void findOrderWithItems_shouldThrowOrderNotFoundException_whenMonoIsEmptyFail() {
+    void findOrderWithItemsByUserId_shouldThrowOrderNotFoundException_whenMonoIsEmptyFailByUserId() {
 
         when(orderRepository.findById(INVALID_ID)).thenReturn(Mono.empty());
         when(orderItemRepository.findItemsWithDetailsByOrderId(INVALID_ID)).thenReturn(Flux.fromIterable(List.of(orderItemsDetails)));
 
         Assertions.assertThatExceptionOfType(OrderNotFoundException.class)
-                .isThrownBy(() -> orderService.findOrderWithItems(INVALID_ID).block());
+                .isThrownBy(() -> orderService.findOrderWithItemsByUserId(INVALID_ID,VALID_ID).block());
     }
 
     @ParameterizedTest

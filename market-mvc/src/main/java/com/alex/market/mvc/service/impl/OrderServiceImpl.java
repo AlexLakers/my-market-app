@@ -165,7 +165,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Mono<OrderDto> findOrderWithItems(Long orderId) {
+    @PreAuthorize("hasAuthority('USER') or #userId==authentication.principal.id")
+    public Mono<OrderDto> findOrderWithItemsByUserId(Long orderId, Long userId) {
         log.info("Getting order with id: {} with items", orderId);
 
         return Mono.zip(

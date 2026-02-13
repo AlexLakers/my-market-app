@@ -9,6 +9,6 @@ import java.util.Map;
 
 public interface OrderService {
     Flux<OrderDto> findAllPaidOrdersByUserId(Long userId);
-    Mono<OrderDto> findOrderWithItems(Long orderId);
+    Mono<OrderDto> findOrderWithItemsByUserId(Long orderId, Long userId);
     Mono<OrderPaymentDto> createAndProcessOrderByUserId(Map<Long, Integer> cartItemsCounts,Long userId);
 }
