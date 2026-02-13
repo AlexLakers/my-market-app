@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 
 <head>
     <meta charset="utf-8">
@@ -18,6 +18,12 @@
                     <h2>
                         <span class="badge text-bg-success">Витрина магазина</span>
                     </h2>
+
+                    <div class="ms-auto d-flex gap-3">
+                        <a href="/login" class="btn btn-secondary bi bi-file-earmark-text">Войти</a>
+                        <a href="/register" class="btn btn-secondary bi bi-file-earmark-text">Регистрация</a>
+                    </div>
+                    <div sec:authorize="isAuthenticated()">
                     <a href="/orders" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
                     <a href="/cart/items" class="btn btn-secondary bi bi-cart4"> Корзина</a>
                     <form action="/logout" method="post" style="display: inline;">
@@ -25,6 +31,9 @@
                             Выйти
                         </button>
                     </form>
+                    </div>
+
+
                 </div>
             </div>
         </div>
@@ -68,16 +77,18 @@
                         </h5>
                         <p class="card-text" th:text="${item.description()}"></p>
                         <form method="post" th:action="@{/items}">
-                            <div class="hstack gap-3">
-                                <input type="hidden" name="id" th:value="${item.id()}">
-                                <input type="hidden" name="search" th:value="${search}">
-                                <input type="hidden" name="sort" th:value="${sort}">
-                                <input type="hidden" name="pageSize" th:value="${paging.pageSize()}">
-                                <input type="hidden" name="pageNumber" th:value="${paging.pageNumber()}">
+                            <input type="hidden" name="id" th:value="${item.id()}">
+                            <input type="hidden" name="search" th:value="${search}">
+                            <input type="hidden" name="sort" th:value="${sort}">
+                            <input type="hidden" name="pageSize" th:value="${paging.pageSize()}">
+                            <input type="hidden" name="pageNumber" th:value="${paging.pageNumber()}">
+
+                            <div sec:authorize="isAuthenticated()" class="hstack gap-3">
                                 <button type="submit" class="btn btn-outline-secondary" name="action" value="MINUS">-</button>
                                 <span th:text="${item.count()}"></span>
                                 <button type="submit" class="btn btn-outline-secondary" name="action" value="PLUS">+</button>
-                                <button type="submit" class="btn btn-warning ms-auto bi bi-cart4" name="action" value="PLUS" th:if="${item.count()==0}"></button>
+                                <button type="submit" class="btn btn-warning ms-auto bi bi-cart4" name="action" value="PLUS"
+                                        th:if="${item.count()==0}"></button>
                             </div>
                         </form>
                     </div>

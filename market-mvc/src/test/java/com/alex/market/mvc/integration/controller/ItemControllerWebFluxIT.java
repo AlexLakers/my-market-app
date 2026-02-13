@@ -26,6 +26,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockReset;
@@ -43,7 +44,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 
 @WebFluxTest(ItemController.class)
-@Import({ConfigProperties.class, GlobalExceptionHandler.class, SecurityConfig.class})
+@Import({ConfigProperties.class, GlobalExceptionHandler.class/*, SecurityConfig.class*/})
 @ActiveProfiles("test")
 class ItemControllerWebFluxIT {
 
@@ -75,6 +76,7 @@ class ItemControllerWebFluxIT {
 
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel() {
         PageItemsDto expectedDto = new PageItemsDto(List.of(List.of(new ItemDto(VALID_ID, "test1-title", "test1-desc", "/img/path", 1000L, 3))), SortColumn.PRICE.name(), "test1", new PageDto(3, 1, false, false));
 
@@ -100,6 +102,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void getItems_shouldSet200StatusAndReturnHtmlPageWithModel_whenParamsNotGiven() {
         PageItemsDto expectedDto = new PageItemsDto(List.of(List.of(new ItemDto(VALID_ID, "test1-title", "test1-desc", "/img/path", 1000L, 3))), SortColumn.PRICE.name(), "test1", new PageDto(3, 1, false, false));
 
@@ -121,6 +124,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void createItem_shouldSet201StatusAndReturnHtmlPageNewImageSuccess() {
         ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
         ItemDto itemDto = new ItemDto(VALID_ID, givenDto.title(), givenDto.description(), null, givenDto.price(), 1);
@@ -145,6 +149,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void createItem_shouldSet400StatusAndReturnHtmlPage400Fail() {
         ItemCreateDto givenDto = new ItemCreateDto("already-title", "description", 1000L);
         doThrow(TitleAlreadyExistsException.class).when(itemService).createItem(givenDto);
@@ -167,6 +172,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void updateImageById_shouldUpdateImageByItemIdSuccess() {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
@@ -187,6 +193,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void updateImageById_shouldSet404StatusAndReturnErrorPage_whenItemNotFountFail() {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
@@ -210,6 +217,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void getItemByIdWithCartCount_shouldSet200AndReturnItemByIdSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "title", "description", null, 1000L, 1);
         when(itemService.getItemByIdWithCartCount(VALID_ID, cartItemsCount)).thenReturn(Mono.just(itemDto));
@@ -227,6 +235,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void getItemByIdWithCartCount_shouldSet404AndReturnErrorPageFail() {
         when(itemService.getItemByIdWithCartCount(INVALID_ID, cartItemsCount)).thenReturn(Mono.error(new ItemNotFoundException(INVALID_ID)));
 
@@ -242,6 +251,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void changeCartItemCountForItemsPage_shouldRedirectItemsPageWithAttrs() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
@@ -263,6 +273,7 @@ class ItemControllerWebFluxIT {
     }
 
     @Test
+    @WithMockUser(username = "testUser",password = "testPassword",authorities = "USER")
     void changeCartItemCountForItemPage_shouldSet200AndReturnItemPageWithModel() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto expectedDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);

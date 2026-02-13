@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +29,7 @@ public class PaymentApiController implements DefaultApi {
     private final PaymentService paymentService;
 
     @Override
+    @PreAuthorize("hasAuthority('PAYMENT-ACCESS')")
     public Mono<ResponseEntity<AccountResponse>> getAccountById(
             @PathVariable("accountId") Long accountId,
             ServerWebExchange exchange
@@ -42,6 +44,7 @@ public class PaymentApiController implements DefaultApi {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('PAYMENT-ACCESS')")
     public Mono<ResponseEntity<PaymentResponse>> processPayment(
             @Valid @RequestBody Mono<PaymentRequest> paymentRequest,
             ServerWebExchange exchange

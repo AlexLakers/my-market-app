@@ -1,5 +1,5 @@
 server:
-  port: ${APP_PORT:8080}
+  port: ${APP_PORT:8082}
 
 spring:
   threads:
@@ -36,6 +36,22 @@ spring:
       max-size: 50
       max-idle-time: 30s
       validation-query: SELECT 1
+
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/market-payment
+        registration:
+          keycloak:
+
+            provider: keycloak
+            client-id:
+            client-secret:
+            authorization-grant-type: client_credentials
+            scope: openid
+
 
 market:
   upload:

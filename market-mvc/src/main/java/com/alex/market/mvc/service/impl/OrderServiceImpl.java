@@ -162,7 +162,6 @@ public class OrderServiceImpl implements OrderService {
                                 .doOnError(error ->
                                         log.error("Error during getting orders: {}", error.getMessage(), error)
                                 );
-              /*  );*/
     }
 
     @Override

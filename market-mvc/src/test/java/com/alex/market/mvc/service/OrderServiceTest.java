@@ -51,8 +51,7 @@ class OrderServiceTest {
     private OrderRepository orderRepository;
     @Autowired
     private CartService cartService;
-   /* @Autowired
-    private UserService userService;*/
+
     @Autowired
     private PaymentApiClientService paymentApiClientService;
 
@@ -118,7 +117,6 @@ class OrderServiceTest {
         OrderPaymentDto expectedPaymentDto = new OrderPaymentDto(orderId, orderStatus);
         List<OrderItem> listOrderItem = List.of(OrderItem.builder().itemId(VALID_ID).orderId(orderId).count(2).historyPrice(1000L).build());
 
-      /*  when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));*/
         when(cartService.getItemsCartWithCounts(cartItemsCount)).thenReturn(Mono.just(Map.of(item, 2)));
         when(orderItemRepository.saveAll(Mockito.anyCollection())).thenReturn(Flux.fromIterable(listOrderItem));
         when(orderRepository.save(Mockito.any(Order.class))).thenReturn(Mono.just(expectedOrder));
@@ -140,11 +138,6 @@ class OrderServiceTest {
         public PaymentApiClientService paymentApiClientService() {
             return Mockito.mock(PaymentApiClientServiceImpl.class);
         }
-
-      /*  @Bean
-        public UserService userService() {
-            return Mockito.mock(UserServiceImpl.class);
-        }*/
 
         @Bean
         public OrderService orderService(PaymentApiClientService paymentApiClientService,
