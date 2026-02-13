@@ -74,14 +74,11 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.2
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KEYCLOAK_HTTP_HOST: 0.0.0.0
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_LOGIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASS}
     ports:
-      - 8080:8080
+      - "${KEYCLOAK_HOST_PORT}:${KEYCLOAK_PORT}"
     restart: always
-    #volumes:
-     # - ./realm-export.json:/opt/jboss/keycloak/realm-export.json
     command:
       - start-dev
     networks:
