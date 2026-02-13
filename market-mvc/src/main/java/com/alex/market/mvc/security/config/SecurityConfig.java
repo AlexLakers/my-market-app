@@ -69,29 +69,7 @@ public class SecurityConfig {
                         .logoutUrl("/logout")
                         .logoutHandler(new WebSessionServerLogoutHandler())
                         .logoutSuccessHandler(new RedirectServerLogoutSuccessHandler())
-                )
-                /*.exceptionHandling(handling -> handling
-                        .accessDeniedHandler((exchange, denied) ->
-                                Mono.error(new AccessDeniedException("Access Denied"))))*/
-                .addFilterAfter(cartWebFilter, SecurityWebFiltersOrder.AUTHENTICATION);
+                );
         return http.build();
-    }
-
-
-    @Bean
-    ReactiveOAuth2AuthorizedClientManager auth2AuthorizedClientManager(
-            ReactiveClientRegistrationRepository clientRegistrationRepository,
-            ReactiveOAuth2AuthorizedClientService authorizedClientService
-    ) {
-        AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager manager =
-                new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(clientRegistrationRepository, authorizedClientService);
-
-        manager.setAuthorizedClientProvider(ReactiveOAuth2AuthorizedClientProviderBuilder.builder()
-                .clientCredentials()
-                .refreshToken()
-                .build()
-        );
-
-        return manager;
     }
 }

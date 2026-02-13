@@ -20,9 +20,9 @@ public class PaymentClientConfig {
     private final ConfigProperties configProperties;
 
     @Bean
-    public WebClient webClient(ReactiveOAuth2AuthorizedClientManager auth2AuthorizedClientManage) {
-        var oauth2Client = new ServerOAuth2AuthorizedClientExchangeFilterFunction(auth2AuthorizedClientManage);
-        oauth2Client.setDefaultClientRegistrationId("keycloak");
+    public WebClient webClient(ReactiveOAuth2AuthorizedClientManager auth2AuthorizedClientManager) {
+        var oauth2Client = new ServerOAuth2AuthorizedClientExchangeFilterFunction(auth2AuthorizedClientManager);
+        oauth2Client.setDefaultClientRegistrationId(configProperties.getOauth2RegistrationId());
 
         return WebClient.builder()
                 .baseUrl(configProperties.getPaymentServiceUrl())

@@ -47,8 +47,8 @@ spring:
           #registrationId
           keycloak:
             provider: keycloak
-            client-id: ${OAUTH2_CLIENT_ID:market-mvc}
-            client-secret: ${OAUTH2_SECRET:tqtO8jHjDYy3IDN3OYCDMbL2lcoWFwNx}
+            client-id: ${OAUTH2_CLIENT_ID}
+            client-secret: ${OAUTH2_SECRET}
             authorization-grant-type: client_credentials
             scope: openid
 
