@@ -84,54 +84,30 @@ WebFlux+R2DBC), реактивный RESTfull сервис для обработ
 ![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/cart-with-login-before-bay.png?raw=true)
 
 Из корзины мы можем сделать покупку через внешний сервис оплаты 'payment-service'.
-Также можем посмотреть оформленные заказы для текущего пользователя.
+
+![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/orders-with-login-after-buy.png?raw=true)
+
+Также можем посмотреть оформленные заказы, которые аналогично корзине привязаны к пользователю.
 
 ![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/orders.png?raw=true)
 
-Также в проекте были созданы страницы для других ошибок для их визцализации - 404.html, 400.html, 500.html
-После этого товар добавится и будет предложено добавить для него картинку(опциональный шаг), мы добавим.
+Мы закончили с нашими покупками и теперь нам просто надо нажать кнопку 'Выйти' на любой странице для завершения пользовательской сессии.
 
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/image_ad.png?raw=true)
-
-Затем после успешного добавления картинки для товара, которая будет сохранена на сервере в указанном хранилище посмотрим
-общий каталог товаров.
-
-Также для более удобного динамического поиска можно ввести символы из названия товара или из описания.Мы покажем все
-товары.
-
-Можно также выбрать сортировку по цене или алфавиту. Мы веберем по цене.
-
-Что касается пагинации , то этот функционал тут тоже есть, сделаем отображение по 5 товаров
-
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/start_page_sort.png?raw=true)
-
-Видим что товар ```phone``` добавлен с картинкой, которую мы загрузили. Сработала пагинация и сортировка.
-
-Хорошо, далее если пользователю понравился товар и цена, то он может добавить товары в корзину в нужном количестве.
-Мы добавим один мяч и один телефон.
-
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/cart.png?raw=true)
-
-Ну и если пользователь не передумал, он оформляет заказ, взаимодействуя с сервисом платежей 'payment-service.
-Если на счете достаточно средств и сервис доступен, то проходит оплата и оформляется заказ, а корзина очищается.
-Также он может удалить товар из корзины.
-
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/order.png?raw=true)
 
 #### ⚠️ Взаимодействие с сервисом платежей 'payment-service'
 
 Но что если при взаимодействии с сервисом платежей 'payment-service', на счете будет недостаточно средств для покупки
 товаров из корзины.
 
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/BadMoney.png?raw=true)
+![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/paumentNewBadMoney.png?raw=true)
 
 Мы видим информационное сообщение о недостатке средств. Но также может получиться что сервис платежей просто недоуступен
 во время проверки баланса
 
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/AccountServIsUnavailable.png?raw=true)
+![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/newPaymentIsUnuvaliable.png?raw=true)
 
 Или сервис платежей недоступен во время осуществления платежа.
-![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/PayIsUnavble.png?raw=true)
+![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/NewpaymentPaymentIsUnuvail.png?raw=true)
 
 ## модуль payment-service
 
@@ -156,6 +132,25 @@ WebFlux+R2DBC), реактивный RESTfull сервис для обработ
 - ``` POST /api/payments/pay ``` - для оплаты , тоесть создается транзакция оплаты и если все ок, происодит списание со
   счета.
 
+3. #### Система безопасности
+
+Система безопасности включает в себя:
+- Внутренней аутентификации,авторизации в этом сервисе нет, так как он не имеет пользовательского интерфейса и предполагается взаимодействие только через REST API.
+- Сервер Авторизации(OAUTH2.0) - 'payment-service' выступает как Сервер ресурсов в 'client credentials flow'
+  ,получив токен доступа 'Access token'  при запросе, он проверяет его через сервер авторизации и предоставляет доступ.
+- Токен доступа(Access token) - содержит информацию определенную в 'scope', в том числе и роли.
+  Токен передается с запросом от сторонних сервисов с целью получения доступа. В нашем случае 'market-mvc'.
+
+
+### Сервер авторизации (Keycloak)
+
+В качестве сервера авторизации я выбрал Keycloak, на котором:
+- Настроил пространство 'market-payment'
+- Зарегестрировал клиента  'market-mvc'
+- Создал роль пространства, которую связал с клиентом.
+
+![alt text](https://github.com/AlexLakers/ParserJsonCsvToXml/blob/master/WinFormsCsvJsonXml/App_Data/pictures/keycloak.png?raw=true)
+
 ### Основные компоненты
 
 > - В качестве основного фреймворка был использован 'Spring Boot v3.5.8'.
@@ -167,8 +162,10 @@ WebFlux+R2DBC), реактивный RESTfull сервис для обработ
 > - В качестве встроенного сервера использовал Netty(embedded) на неблокирующей модели.
 > - Для маппинга использовал Mapstruct framework.
 > - Для валидации использовал Hibernate Validator(в составе 'spring-boot-starter-validation').
-> - Для системы кеширования в 'market-mvc' был использован Redi, для тестов 'testcontainers'.
+> - Для системы кеширования в 'market-mvc' был использован Redis, для тестов 'testcontainers'.
 > - Для генерации клиентского кода(market-mvc) и серверного кода(payment-service) использовал 'Open Api'.
+> - Для настройки аспектов безопасности в приложении использовал Spring Security.
+> - Как сервер авторизации в терминологии OAUTH2.0 использовал Keycloak.
 
 ### Сборка
 
@@ -184,7 +181,7 @@ WebFlux+R2DBC), реактивный RESTfull сервис для обработ
   ```
 
 - В результате поднимятся 2 базы данных Postgres, сервис оплаты и приложение интернет-магазина, а также
-  система кеширвоания Redis во внетренней сети Docker.
+  система кеширвоания Redis во внетренней сети Docker и сервер авторизации Keycloak.
 
 ### ⚠️ Важное примечание
 
