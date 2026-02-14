@@ -2,6 +2,7 @@ package com.alex.market.mvc.security.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.client.AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientProviderBuilder;
@@ -12,6 +13,7 @@ import org.springframework.security.oauth2.client.registration.ReactiveClientReg
 public class Oauth2AutorizedClientManagerConfig {
 
     @Bean
+    @Profile("!test")
     ReactiveOAuth2AuthorizedClientManager auth2AuthorizedClientManager(
             ReactiveClientRegistrationRepository clientRegistrationRepository,
             ReactiveOAuth2AuthorizedClientService authorizedClientService

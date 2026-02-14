@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -76,6 +77,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<CartDto> getItemsCartWithBalanceStatus(Map<Long, Integer> cartItemsCount) {
         log.info("Getting cart with balance status, items count: {}",
                 cartItemsCount != null ? cartItemsCount.size() : 0);
