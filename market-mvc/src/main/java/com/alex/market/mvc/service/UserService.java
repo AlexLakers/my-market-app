@@ -1,4 +1,4 @@
-package com.alex.market.mvc.security.service;
+package com.alex.market.mvc.service;
 
 import com.alex.market.mvc.security.dto.UserDto;
 import com.alex.market.mvc.security.dto.UserRegDto;
@@ -6,11 +6,9 @@ import com.alex.market.mvc.security.model.CustomUserDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import reactor.core.publisher.Mono;
 
-public interface UserService extends ReactiveUserDetailsService{
+public interface UserService{
     Mono<UserDto> createUser(UserRegDto userRegDto);
 
 

@@ -1,7 +1,7 @@
 package com.alex.market.mvc.controller;
 
 import com.alex.market.mvc.model.OrderStatus;
-import com.alex.market.mvc.security.service.UserService;
+import com.alex.market.mvc.service.UserService;
 import com.alex.market.mvc.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,18 +18,16 @@ import java.util.Map;
 @Slf4j
 public class OrderController {
     private final OrderService orderService;
-    private final UserService userService;
 
     @GetMapping("/orders")
     public Mono<Rendering> getAllOrdersForUser() {
-        return userService.getCurrentUserId()
-                .flatMap(userId -> orderService.findAllPaidOrdersByUserId(userId)
+        return orderService.findAllPaidOrdersForAuthUser()
                         .collectList()
                         .map(orders -> Rendering
                                 .view("orders")
                                 .modelAttribute("orders", orders)
                                 .status(HttpStatus.OK)
-                                .build()));
+                                .build());
     }
 
     @GetMapping("/orders/{id}")
@@ -37,27 +35,25 @@ public class OrderController {
                                                @RequestParam(defaultValue = "false") boolean newOrder) {
         log.info("---endpoint 'getOrderById' with input params: newOrder:{} and id:{} was started---", newOrder, id);
 
-        return userService.getCurrentUserId()
-                .flatMap(userId -> orderService.findOrderWithItemsByUserId(id, userId)
+        return  orderService.findOrderWithItems(id)
                         .map(orderDto -> Rendering
                                 .view("order")
                                 .modelAttribute("order", orderDto)
                                 .modelAttribute("newOrder", newOrder)
                                 .status(HttpStatus.OK)
-                                .build()));
+                                .build());
     }
 
     @PostMapping("/buy")
     public Mono<String> createOrderForUser(@SessionAttribute(required = false) Map<Long, Integer> cart) {
         log.info("---endpoint 'createOrder' with cart:{} from session was started---", cart);
 
-        return userService.getCurrentUserId()
-                .flatMap(userId -> orderService.createAndProcessOrderByUserId(cart, userId)
+        return  orderService.createAndProcessOrderForAuthUser(cart)
                         .map(dto -> {
                             if (dto.orderStatus().equals(OrderStatus.PAID.name())) {
                                 cart.clear();
                                 return "redirect:/orders/" + dto.orderId() + "?newOrder=true";
                             } else return "redirect:/cart/items" + "?paymentOrderStatus=" + dto.orderStatus();
-                        }));
+                        });
     }
 }

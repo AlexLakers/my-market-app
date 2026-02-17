@@ -51,11 +51,26 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     private Map<Long, Integer> cartItemsCount;
 
+    private CustomUserDetails customUserDetails;
+    private OAuth2AccessToken accessToken;
 
     @BeforeEach
     void setUp() {
         cartItemsCount = new HashMap<>();
         cartItemsCount.put(VALID_ID, 2);
+       customUserDetails = new CustomUserDetails(
+                "lakers@yandex.ru",
+                "password",
+                Collections.singletonList(new SimpleGrantedAuthority("USER")),
+                1L
+        );
+         accessToken = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                "fake-access-token",
+                Instant.now(),
+                Instant.now().plusSeconds(3600),
+                Set.of("PAYMENT-ACCESS", "write")
+        );
 
         mockCartWebFilter();
     }
@@ -69,16 +84,8 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getAllOrdersForUser_shouldSet200AndReturnOrdersPageWithData() {
-
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "lakers@yandex.ru",
-                "password",
-                Collections.singletonList(new SimpleGrantedAuthority("USER")),
-                1L
-        );
-
         testClient
-                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .mutateWith(SecurityMockServerConfigurers.mockUser(customUserDetails))
                 .get()
                 .uri("/orders")
                 .exchange()
@@ -92,15 +99,7 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getOrderById_ForUser_shouldReturnOneDtoAndViewSuccess() {
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "lakers@yandex.ru",
-                "password",
-                Collections.singletonList(new SimpleGrantedAuthority("USER")),
-                1L
-        );
-
-
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(customUserDetails))
                 .get()
                 .uri("/orders/" + VALID_ID)
                 .exchange()
@@ -114,15 +113,7 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getOrderById_ForUser_shouldSetStatus404_whenNotFoundFail() {
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "lakers@yandex.ru",
-                "password",
-                Collections.singletonList(new SimpleGrantedAuthority("USER")),
-                1L
-        );
-
-
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(customUserDetails))
                 .get()
                 .uri("/orders/" + INVALID_ID)
                 .exchange()
@@ -136,14 +127,14 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void getOrderById_ForUser_shouldSet403_whenUserHasNotEnoughAuthority_fail() {
-        CustomUserDetails userDetails = new CustomUserDetails(
+        CustomUserDetails NotValidUserDetails = new CustomUserDetails(
                 "lakers@yandex.ru",
                 "password",
                 Collections.singletonList(new SimpleGrantedAuthority("NOT-VALID-USER")),
                 1L
         );
 
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(NotValidUserDetails))
                 .get()
                 .uri("/orders/" + VALID_ID)
                 .exchange()
@@ -154,20 +145,6 @@ class OrderControllerIT extends BaseIntegrationTest {
     @Test
     void createAndProcessOrderForUser_shouldRedirectWithFailedStatus_Failed() {
 
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "lakers@yandex.ru",
-                "password",
-                Collections.singletonList(new SimpleGrantedAuthority("USER")),
-                1L
-        );
-
-        OAuth2AccessToken accessToken = new OAuth2AccessToken(
-                OAuth2AccessToken.TokenType.BEARER,
-                "fake-access-token",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                Set.of("PAYMENT-ACCESS", "write")
-        );
 
         String failedResponse = "{\"accountId\":1,\"orderId\":1,\"transactionId\":31,\"status\":\"FAILED\",\"failureReason\":\"Amount must be positive and account with id: 1\",\"amount\":1000}";
 
@@ -175,7 +152,7 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .willReturn(okJson(failedResponse)));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
-                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .mutateWith(SecurityMockServerConfigurers.mockUser(customUserDetails))
                 .mutateWith(SecurityMockServerConfigurers.mockOAuth2Client()
                         .clientRegistration(ClientRegistration.withRegistrationId("keycloak-test")
                                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
@@ -194,28 +171,12 @@ class OrderControllerIT extends BaseIntegrationTest {
 
     @Test
     void createAndProcessOrderForUser_shouldCreateAndProcessOrderRedirectToNewOrderPage_Success() {
-
-        CustomUserDetails userDetails = new CustomUserDetails(
-                "lakers@yandex.ru",
-                "password",
-                Collections.singletonList(new SimpleGrantedAuthority("USER")),
-                1L
-        );
-
-        OAuth2AccessToken accessToken = new OAuth2AccessToken(
-                OAuth2AccessToken.TokenType.BEARER,
-                "fake-access-token",
-                Instant.now(),
-                Instant.now().plusSeconds(3600),
-                Set.of("PAYMENT-ACCESS", "write")
-        );
-
         final long newSavedId = 1L;
         mockPaymentService.stubFor(post("/api/payments/pay")
                 .willReturn(okJson("{\"accountId\":1,\"orderId\":1,\"transactionId\":30,\"status\":\"SUCCESS\",\"amount\":1000}")));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf())
-                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .mutateWith(SecurityMockServerConfigurers.mockUser(customUserDetails))
                 .mutateWith(SecurityMockServerConfigurers.mockOAuth2Client()
                         .clientRegistration(ClientRegistration.withRegistrationId("keycloak-test")
                                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
@@ -232,7 +193,7 @@ class OrderControllerIT extends BaseIntegrationTest {
                 .expectHeader().location("/orders/" + newSavedId + "?newOrder=true")
                 .expectBody(String.class);
 
-        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+        testClient.mutateWith(SecurityMockServerConfigurers.mockUser(customUserDetails))
                 .get()
                 .uri("/orders/{id}", newSavedId)
                 .exchange()

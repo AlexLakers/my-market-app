@@ -7,7 +7,7 @@ import com.alex.market.mvc.dto.output.OrderDto;
 import com.alex.market.mvc.dto.output.OrderPaymentDto;
 import com.alex.market.mvc.exception.OrderNotFoundException;
 import com.alex.market.mvc.filter.CartWebFilter;
-import com.alex.market.mvc.security.service.UserService;
+import com.alex.market.mvc.service.UserService;
 import com.alex.market.mvc.service.OrderService;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,8 +76,7 @@ class OrderControllerWebFluxIT {
     void getAllOrders_shouldSet200AndReturnOrdersForUserPageWithData() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        when(orderService.findAllPaidOrdersByUserId(VALID_ID)).thenReturn(Flux.fromIterable(List.of(orderDto)));
-        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
+        when(orderService.findAllPaidOrdersForAuthUser()).thenReturn(Flux.fromIterable(List.of(orderDto)));
 
         testClient.get()
                 .uri("/orders")
@@ -91,11 +90,10 @@ class OrderControllerWebFluxIT {
     }
 
     @Test
-    void getOrderById_ForUser_shouldReturnOneDtoAndViewSuccess() {
+    void getOrderById_shouldReturnOneDtoAndViewSuccess() {
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, 1);
         OrderDto orderDto = new OrderDto(VALID_ID, List.of(itemDto), 1000L);
-        when(orderService.findOrderWithItemsByUserId(VALID_ID,VALID_ID)).thenReturn(Mono.just(orderDto));
-        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
+        when(orderService.findOrderWithItems(VALID_ID)).thenReturn(Mono.just(orderDto));
 
         testClient.get()
                 .uri("/orders/" + VALID_ID)
@@ -109,9 +107,8 @@ class OrderControllerWebFluxIT {
     }
 
     @Test
-    void getOrderById_ForUser_shouldSetStatus404_whenNotFoundFail() {
-        when(orderService.findOrderWithItemsByUserId(INVALID_ID,VALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
-        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
+    void getOrderById__shouldSetStatus404_whenNotFoundFail() {
+        when(orderService.findOrderWithItems(INVALID_ID)).thenReturn(Mono.error(new OrderNotFoundException(INVALID_ID)));
         testClient.get()
                 .uri("/orders/" + INVALID_ID)
                 .exchange()
@@ -124,10 +121,9 @@ class OrderControllerWebFluxIT {
     }
 
     @Test
-    void createOrder_shouldSet201AndRedirectToOrderForUserPage() {
+    void createOrderForAuthUser_shouldSet201AndRedirectToOrderForUserPage() {
         OrderPaymentDto orderPaymentDto = new OrderPaymentDto(VALID_ID,"PAID");
-        when(orderService.createAndProcessOrderByUserId(anyMap(),anyLong())).thenReturn(Mono.just(orderPaymentDto));
-        when(userService.getCurrentUserId()).thenReturn(Mono.just(VALID_ID));
+        when(orderService.createAndProcessOrderForAuthUser(anyMap())).thenReturn(Mono.just(orderPaymentDto));
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/buy")

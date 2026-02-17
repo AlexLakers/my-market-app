@@ -1,7 +1,7 @@
 package com.alex.market.mvc.security.controller;
 
 import com.alex.market.mvc.security.dto.UserRegDto;
-import com.alex.market.mvc.security.service.UserService;
+import com.alex.market.mvc.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

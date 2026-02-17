@@ -48,11 +48,11 @@ class CartControllerIT extends BaseIntegrationTest {
 
     private static final Long VALID_ID = 1000L;
 
+
     @BeforeEach
     void setUp() {
         cartItemsCount = new HashMap<>();
         cartItemsCount.put(VALID_ID, 2);
-
         mockCartWebFilter();
     }
 
@@ -147,7 +147,7 @@ class CartControllerIT extends BaseIntegrationTest {
     void getItemsCartWithBalanceStatus_shouldSet404_whenAuthoritiesIsNotEnough() {
         String failedResponse = String.format("{\"accountId\":1,\"balance\":%1$d,\"status\":\"%1%s\"}", 1000, "STATUS");
 
-        CustomUserDetails userDetails = new CustomUserDetails(
+        CustomUserDetails NotValidUserDetails = new CustomUserDetails(
                 "test@yandex.ru",
                 "password",
                 Collections.singletonList(new SimpleGrantedAuthority("NOT-VALID-ROLE")),
@@ -160,7 +160,7 @@ class CartControllerIT extends BaseIntegrationTest {
 
         webTestClient
                 .mutateWith(SecurityMockServerConfigurers.csrf())
-                .mutateWith(SecurityMockServerConfigurers.mockUser(userDetails))
+                .mutateWith(SecurityMockServerConfigurers.mockUser(NotValidUserDetails))
                 .get()
                 .uri("/cart/items")
                 .exchange()

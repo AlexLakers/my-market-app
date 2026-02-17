@@ -36,7 +36,7 @@ class ItemControllerIT extends BaseIntegrationTest {
 
     private static final Long VALID_ID = 1000L;
     private static final Long INVALID_ID = Long.MAX_VALUE;
-
+    private final ItemCreateDto givenCreateDto = new ItemCreateDto("test1-ball", "description", 1000L);
     @MockitoBean(reset = MockReset.BEFORE)
     private CartWebFilter cartWebFilter;
 
@@ -94,14 +94,13 @@ class ItemControllerIT extends BaseIntegrationTest {
     @Test
     @WithMockUser(username = "test@yandex.ru",password = "password",authorities = "USER")
     void createItem_shouldSet201StatusAndReturnHtmlPageNewImageSuccess() {
-        ItemCreateDto givenDto = new ItemCreateDto("test-title", "description", 1000L);
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/new")
-                        .queryParam("title", givenDto.title())
-                        .queryParam("description", givenDto.description())
-                        .queryParam("price", givenDto.price())
+                        .queryParam("title", "newTitle" + givenCreateDto.title())
+                        .queryParam("description", givenCreateDto.description())
+                        .queryParam("price", givenCreateDto.price())
                         .build())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .exchange()
@@ -110,21 +109,20 @@ class ItemControllerIT extends BaseIntegrationTest {
                 .expectBody(String.class)
                 .value(html -> {
                     assert html.contains("<i class=\"bi bi-check-circle\"></i> Товар успешно создан!");
-                    assert html.contains("test-title");
+                    assert html.contains("newTitletest1-ball");
                 });
     }
 
     @Test
     @WithMockUser(authorities = "USER")
     void createItem_shouldSet400StatusAndReturnHtmlPage400Fail() {
-        ItemCreateDto givenDto = new ItemCreateDto("test1-ball", "description", 1000L);
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/items/new")
-                        .queryParam("title", givenDto.title())
-                        .queryParam("description", givenDto.description())
-                        .queryParam("price", givenDto.price())
+                        .queryParam("title", givenCreateDto.title())
+                        .queryParam("description", givenCreateDto.description())
+                        .queryParam("price", givenCreateDto.price())
                         .build())
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .exchange()
@@ -139,15 +137,11 @@ class ItemControllerIT extends BaseIntegrationTest {
     @Test
     @WithMockUser(authorities = "USER")
     void updateImageById_shouldUpdateImageByItemIdSuccess() {
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
-                .filename("image.jpg")
-                .contentType(MediaType.IMAGE_JPEG);
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{id}/images/new", VALID_ID)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .bodyValue(builder.build())
+                .bodyValue(getTestMultipartBuilder().build())
                 .exchange()
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/items/" + VALID_ID)
@@ -157,21 +151,25 @@ class ItemControllerIT extends BaseIntegrationTest {
     @Test
     @WithMockUser(authorities = "USER")
     void updateImageById_shouldSet404StatusAndReturnErrorPage_whenItemNotFountFail() {
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
-                .filename("image.jpg")
-                .contentType(MediaType.IMAGE_JPEG);
 
         testClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri("/items/{id}/images/new", INVALID_ID)
                 .contentType(MediaType.MULTIPART_FORM_DATA)
-                .bodyValue(builder.build())
+                .bodyValue(getTestMultipartBuilder().build())
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectBody(String.class)
                 .value(html -> {
                     assert html.contains("Страница не найдена");
                 });
+    }
+    private static MultipartBodyBuilder getTestMultipartBuilder(){
+
+        MultipartBodyBuilder builder= new MultipartBodyBuilder();
+        builder.part("image", new ByteArrayResource("image/jpeg".getBytes()))
+                .filename("image.jpg")
+                .contentType(MediaType.IMAGE_JPEG);
+        return builder;
     }
 
     @Test
