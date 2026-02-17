@@ -8,6 +8,7 @@ import com.alex.market.payment.exception.AccountNotFoundException;
 import com.alex.market.payment.exception.ErrorResponse;
 import com.alex.market.payment.exception.handler.GlobalExceptionHandler;
 import com.alex.market.payment.rest.controller.PaymentApiController;
+import com.alex.market.payment.security.SecurityConfig;
 import com.alex.market.payment.service.AccountService;
 import com.alex.market.payment.service.PaymentService;
 import org.junit.jupiter.api.Test;
@@ -17,9 +18,16 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+
+import java.time.Instant;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
@@ -42,7 +50,10 @@ class PaymentApiControllerWebFluxIT {
         AccountResponse accountResponse = new AccountResponse(1L, 3000L);
         when(accountService.getAccountById(VALID_ID)).thenReturn(Mono.just(accountResponse));
 
-        webClient.get()
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                        .authorities(new SimpleGrantedAuthority("PAYMENT-ACCESS"))
+                        .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .get()
                 .uri("/api/payments/accounts/{accountId}", VALID_ID)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
@@ -57,7 +68,10 @@ class PaymentApiControllerWebFluxIT {
         when(accountService.getAccountById(INVALID_ID)).thenReturn(Mono.error(new AccountNotFoundException(INVALID_ID)));
         ErrorResponse error = new ErrorResponse(HttpStatus.NOT_FOUND.value(), "The account with id: -1 is not found");
 
-        webClient.get()
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                .authorities(new SimpleGrantedAuthority("PAYMENT-ACCESS"))
+                .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .get()
                 .uri("/api/payments/accounts/{accountId}", INVALID_ID)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
@@ -69,11 +83,15 @@ class PaymentApiControllerWebFluxIT {
 
     @Test
     void processPayment_shouldSet200StatusAndReturnPaymentResponseJson() {
-        PaymentRequest request = new PaymentRequest(VALID_ID, VALID_ID,VALID_ID, 3000L);
+        PaymentRequest request = new PaymentRequest(VALID_ID, VALID_ID, VALID_ID, 3000L);
         PaymentResponse response = new PaymentResponse(VALID_ID, VALID_ID, VALID_ID, TransactionStatus.SUCCESS, 3000L);
         when(paymentService.processPaymentInTransaction(request)).thenReturn(Mono.just(response));
 
-        webClient.post()
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                        .authorities(new SimpleGrantedAuthority("PAYMENT-ACCESS"))
+                        .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .mutateWith(SecurityMockServerConfigurers.csrf())
+                .post()
                 .uri("/api/payments/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)

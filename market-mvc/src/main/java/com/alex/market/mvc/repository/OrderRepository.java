@@ -5,7 +5,9 @@ import com.alex.market.mvc.model.OrderStatus;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface OrderRepository extends R2dbcRepository<Order, Long> {
-    Flux<Order> findAllByStatus(OrderStatus status);
+    Flux<Order> findAllByStatusAndUserId(OrderStatus status,Long userId);
+    Mono<Order> findByIdAndUserId(String id,Long userId);
 }

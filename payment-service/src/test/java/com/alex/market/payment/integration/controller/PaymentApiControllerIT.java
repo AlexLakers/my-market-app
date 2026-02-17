@@ -18,6 +18,8 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
@@ -36,7 +38,10 @@ class PaymentApiControllerIT extends BaseIntegrationTest {
     void getAccountById_shouldReturnAccountResponseJson() {
         AccountResponse accountResponse = new AccountResponse(1L, 500000L);
 
-        webClient.get()
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                .authorities(new SimpleGrantedAuthority("PAYMENT-ACCESS"))
+                .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .get()
                 .uri("/api/payments/accounts/{accountId}", VALID_ID)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
@@ -45,12 +50,25 @@ class PaymentApiControllerIT extends BaseIntegrationTest {
                 .expectBody(AccountResponse.class)
                 .value(json -> assertEquals(accountResponse, json));
     }
+    @Test
+    void getAccountById_shouldSet403Status_whenAuthoritiesIsNotEnough() {
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                        .authorities(new SimpleGrantedAuthority("NOT-VALID-ROLE"))
+                        .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .get()
+                .uri("/api/payments/accounts/{accountId}", VALID_ID)
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
 
     @Test
     void getAccountById_shouldSet404StatusAndErrorMessageBody() {
         ErrorResponse error = new ErrorResponse(HttpStatus.NOT_FOUND.value(), "The account with id: -1 is not found");
 
-        webClient.get()
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                .authorities(new SimpleGrantedAuthority("PAYMENT-ACCESS"))
+                .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS"))).get()
                 .uri("/api/payments/accounts/{accountId}", INVALID_ID)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
@@ -65,7 +83,11 @@ class PaymentApiControllerIT extends BaseIntegrationTest {
         PaymentRequest request = new PaymentRequest(VALID_ID, VALID_ID,VALID_ID, 10000L);
         PaymentResponse response = new PaymentResponse(VALID_ID, VALID_ID, VALID_ID, TransactionStatus.SUCCESS, 10000L);
 
-        webClient.post()
+        webClient.mutateWith(SecurityMockServerConfigurers.mockJwt()
+                .authorities(new SimpleGrantedAuthority("PAYMENT-ACCESS"))
+                .jwt(jwt -> jwt.subject("test-service").claim("scope", "PAYMENT-ACCESS")))
+                .mutateWith(SecurityMockServerConfigurers.csrf())
+                .post()
                 .uri("/api/payments/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON)

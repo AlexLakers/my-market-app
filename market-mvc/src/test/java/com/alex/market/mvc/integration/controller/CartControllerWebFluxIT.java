@@ -10,11 +10,16 @@ import com.alex.market.mvc.dto.output.PaymentApiStatus;
 import com.alex.market.mvc.filter.CartWebFilter;
 import com.alex.market.mvc.model.CartAction;
 import com.alex.market.mvc.service.CartService;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers;
 import org.springframework.test.context.bean.override.mockito.MockReset;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -30,6 +35,7 @@ import static org.mockito.Mockito.*;
 
 @WebFluxTest(CartController.class)
 @Import(ConfigProperties.class)
+@WithMockUser(username = "test@yandex.ru",password = "test", authorities = "USER")
 class CartControllerWebFluxIT {
     private Map<Long, Integer> cartItemsCount;
 
@@ -49,16 +55,24 @@ class CartControllerWebFluxIT {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @Test
+    void shouldHaveCorrectPrincipal() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Assertions.assertThat("test@yandex.ru").isEqualTo(auth.getName());
+        Assertions.assertThat(auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("USER")));
+    }
+
     @Test
     void changeCartItemCountForCartPage_shouldRedirectToGetItemsSuccess() {
         CartChangeDto givenDto = new CartChangeDto(VALID_ID, CartAction.PLUS, cartItemsCount);
         ItemDto itemDto = new ItemDto(VALID_ID, "testTitle1", "testDesc1", "testImagePath1", 1000L, cartItemsCount.get(VALID_ID) + 1);
-        AccountBalanceDto accountBalanceDto=new AccountBalanceDto(VALID_ID,3000L, PaymentApiStatus.SUCCESS);
         CartDto expectedDto = new CartDto(List.of(itemDto), 2000L,PaymentApiStatus.SUCCESS.name());
         when(cartService.changeItemCount(givenDto)).thenReturn(Mono.just(itemDto.count()));
         when(cartService.getItemsCartWithBalanceStatus(cartItemsCount)).thenReturn(Mono.just(expectedDto));
 
-        webTestClient.post()
+        webTestClient.mutateWith(SecurityMockServerConfigurers.csrf()).post()
                 .uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", String.valueOf(VALID_ID))

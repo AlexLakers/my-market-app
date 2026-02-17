@@ -1,11 +1,11 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
-    <changeSet id="insert_items_data" author="alexlakers">
+    <changeSet id="insert_users_data" author="alexlakers">
         <preConditions onFail="MARK_RAN">
-            <tableExists tableName="items"/>
+            <tableExists tableName="users"/>
             <sqlCheck expectedResult="0">SELECT COUNT(*)
-                                         FROM items</sqlCheck>
+                                         FROM users</sqlCheck>
         </preConditions>
         <insert tableName="items">
             <column name="title" value="ball"/>

@@ -70,6 +70,23 @@ services:
     depends_on:
       - database-payment
 
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.2
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_LOGIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASS}
+    ports:
+      - "${KEYCLOAK_HOST_PORT}:${KEYCLOAK_PORT}"
+    restart: always
+    command:
+      - start-dev
+    networks:
+      backend-net:
+        aliases:
+          - keycloak
+
+
   redisserver:
     image: redis:alpine
     ports:

@@ -1,4 +1,6 @@
-<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <include file="001-init-items-schema.xml" relativeToChangelogFile="true"/>
     <include file="002-init-orders-schema.xml" relativeToChangelogFile="true"/>
@@ -9,8 +11,18 @@
         <tagDatabase tag="full_schema_v1.1"/>
     </changeSet>
 
+    <include file="008-init-users-schema.xml" relativeToChangelogFile="true"/>
+    <include file="009-add-userId-orders.xml" relativeToChangelogFile="true"/>
+
+    <changeSet id="tag_full_schema_and_users" author="alexlakers">
+        <tagDatabase tag="full_schema_and_users_v1.2"/>
+    </changeSet>
+
+
     <include file="005-init-items-data.xml" relativeToChangelogFile="true" context="dev"/>
+    <include file="010-init-users-data.xml" relativeToChangelogFile="true" context="dev"/>
     <include file="006-init-orders-data.xml" relativeToChangelogFile="true" context="dev"/>
     <include file="007-init-orders-items-data.xml" relativeToChangelogFile="true" context="dev"/>
+
 
 </databaseChangeLog>

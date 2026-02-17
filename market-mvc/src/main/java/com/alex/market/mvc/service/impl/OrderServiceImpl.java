@@ -14,11 +14,13 @@ import com.alex.market.mvc.model.OrderStatus;
 import com.alex.market.mvc.repository.OrderItemRepository;
 import com.alex.market.mvc.repository.OrderRepository;
 import com.alex.market.mvc.repository.projection.OrderItemsDetails;
+import com.alex.market.mvc.service.UserService;
 import com.alex.market.mvc.service.CartService;
 import com.alex.market.mvc.service.OrderService;
 import com.alex.market.mvc.service.PaymentApiClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -40,47 +42,53 @@ public class OrderServiceImpl implements OrderService {
     private final ItemMapper itemMapper;
     private final CartService cartService;
     private final PaymentApiClientService paymentApiClientService;
-
-    public Mono<OrderPaymentDto> createAndProcessOrder(Map<Long, Integer> cartItemsCounts) {
-        log.info("Creating new order.Items in cart: {}", cartItemsCounts != null ? cartItemsCounts.size() : 0);
+    private final UserService userService;
 
 
-        return cartService.getItemsCartWithCounts(cartItemsCounts)
-                .flatMap(itemsCount -> {
-                    log.debug("Getting {} positions items for order", itemsCount != null ? itemsCount.size() : 0);
 
-                    Long totalSum = itemsCount.entrySet().stream()
-                            .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
-                    log.info("Total sum of order: {}", totalSum);
+    @PreAuthorize("hasAuthority('USER')")
+    public Mono<OrderPaymentDto> createAndProcessOrderForAuthUser(Map<Long, Integer> cartItemsCounts) {
+        log.info("Creating new order. Items in cart: {}", cartItemsCounts != null ? cartItemsCounts.size() : 0);
 
-                    Order order = new Order();
-                    order.setStatus(OrderStatus.PENDING);
-                    order.setTotalSum(totalSum);
-                    return orderRepository.save(order)
-                            .flatMap(savedOrder -> {
-                                log.debug("Order was saved in BD with id: {}", savedOrder.getId());
+        return userService.getCurrentUserId()
+                .flatMap(userId ->
+                        cartService.getItemsCartWithCounts(cartItemsCounts)
+                                .flatMap(itemsCount -> {
+                                    log.debug("Getting {} positions items for order", itemsCount.size());
 
-                                List<OrderItem> orderItems = itemsCount.entrySet().stream()
-                                        .map(entry -> createOrderItem(entry, savedOrder.getId()))
-                                        .collect(Collectors.toList());
+                                    Long totalSum = itemsCount.entrySet().stream()
+                                            .mapToLong(entry -> entry.getKey().getPrice() * entry.getValue()).sum();
+                                    log.info("Total sum of order: {}", totalSum);
 
-                                log.info("Created {} positions for order with id: {}", orderItems.size(), savedOrder.getId());
-                                return orderItemRepository.saveAll(orderItems)
-                                        .then(Mono.just(savedOrder/*.getId()*/))
-                                        .doOnSuccess(id ->
-                                                log.info("Order created with id: {}", id)
-                                        )
-                                        .doOnError(error ->
-                                                log.error("Failed to create order", error)
-                                        ).flatMap(this::processOrder)
-                                        .map(processedOrder -> new OrderPaymentDto(
-                                                processedOrder.getId(),
-                                                processedOrder.getStatus().name()))
-                                        .doOnNext(dto->
-                                                log.info("Order with id: {} is processed with status: {}",
-                                                        dto.orderId(), dto.orderStatus()));
-                            });
-                });
+                                    Order order = createNewOrder(userId, totalSum, OrderStatus.PENDING);
+
+                                    return orderRepository.save(order)
+                                            .flatMap(savedOrder -> {
+                                                List<OrderItem> orderItems = itemsCount.entrySet().stream()
+                                                        .map(entry -> createOrderItem(entry, savedOrder.getId()))
+                                                        .collect(Collectors.toList());
+
+                                                log.info("Saving {} order items for order id: {}", orderItems.size(), savedOrder.getId());
+
+                                                return orderItemRepository.saveAll(orderItems)
+                                                        .then(Mono.just(savedOrder));
+                                            })
+                                            .flatMap(this::processOrder)
+                                            .map(processedOrder -> new OrderPaymentDto(
+                                                    processedOrder.getId(),
+                                                    processedOrder.getStatus().name()));
+                                })
+                                .doOnNext(dto -> log.info("Order created: id={}, status={}", dto.orderId(), dto.orderStatus()))
+                                .doOnError(error -> log.error("Order creation failed", error))
+                );
+    }
+
+    private Order createNewOrder(Long userId, Long totalSum, OrderStatus orderStatus) {
+        Order order = new Order();
+        order.setUserId(userId);
+        order.setTotalSum(totalSum);
+        order.setStatus(orderStatus);
+        return order;
     }
 
     private OrderItem createOrderItem(Map.Entry<Item, Integer> entry, Long orderId) {
@@ -134,32 +142,33 @@ public class OrderServiceImpl implements OrderService {
 
 
     @Override
-    public Flux<OrderDto> findAllPaidOrders() {
+    @PreAuthorize("hasAuthority('USER')")
+    public Flux<OrderDto> findAllPaidOrdersForAuthUser() {
         log.info("Getting all orders");
 
-        return orderRepository.findAllByStatus(OrderStatus.PAID)
-                .flatMap(order ->
-                        orderItemRepository.findItemsWithDetailsByOrderId(order.getId())
-                                .collectList()
-                                .map(orderItems -> {
-                                    log.info("Found orders: {}", orderItems.size());
+        return userService.getCurrentUserId()
+                .flatMapMany(userId ->
+                        orderRepository.findAllByStatusAndUserId(OrderStatus.PAID, userId)
+                                .flatMap(order ->
+                                        orderItemRepository.findItemsWithDetailsByOrderId(order.getId())
+                                                .collectList()
+                                                .map(orderItems -> {
+                                                    log.debug("For order with id: {} found {} items", order.getId(), orderItems.size());
 
-                                    List<ItemDto> itemDtos = orderItems.stream()
-                                            .map(itemMapper::toDtoFromOrderItemDetails)
-                                            .collect(Collectors.toList());
+                                                    List<ItemDto> itemDtos = orderItems.stream()
+                                                            .map(itemMapper::toDtoFromOrderItemDetails)
+                                                            .collect(Collectors.toList());
 
-                                    log.debug("For order with id: {} found {} items", order.getId(), itemDtos.size());
-                                    return new OrderDto(order.getId(), itemDtos, order.getTotalSum());
-                                }))
-                .doOnComplete(() ->
-                        log.debug("Finished handling orders")
-                )
-                .doOnError(error ->
-                        log.error("Error during getting orders: {}", error.getMessage(), error)
+                                                    return new OrderDto(order.getId(), itemDtos, order.getTotalSum());
+                                                })
+                                )
+                                .doOnComplete(() -> log.debug("Finished handling orders"))
+                                .doOnError(error -> log.error("Error during getting orders: {}", error.getMessage(), error))
                 );
     }
 
     @Override
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<OrderDto> findOrderWithItems(Long orderId) {
         log.info("Getting order with id: {} with items", orderId);
 

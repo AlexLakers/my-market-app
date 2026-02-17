@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
@@ -34,7 +35,7 @@ public class ItemController {
                                     @RequestParam(required = false, defaultValue = "NO") SortColumn sort,
                                     @RequestParam(required = false, defaultValue = "1") Integer pageNumber,
                                     @RequestParam(required = false, defaultValue = "10") Integer pageSize,
-                                    @SessionAttribute("cart") Map<Long, Integer> cart) {
+                                    @SessionAttribute(required = false, name = "cart") Map<Long, Integer> cart) {
         log.info("---endpoint 'getItems' with input params: search={},sort={},cart={},pageNumber={},pageSize={} was started---",
                 search, sort, cart, pageNumber, pageSize);
 
@@ -49,6 +50,7 @@ public class ItemController {
     }
 
     @GetMapping("/items/new")
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<String> showNewItemPage() {
         log.info("---endpoint 'showNewItemPage' was started---");
 
@@ -57,6 +59,7 @@ public class ItemController {
 
 
     @PostMapping(value = "/items/new")
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<Rendering> createItem(@Validated @ModelAttribute ItemCreateDto item,
                                       BindingResult bindingResult) {
         log.info("---endpoint 'createItem' with input dto: {} was started---", item);
@@ -78,6 +81,7 @@ public class ItemController {
     }
 
     @GetMapping("/items/images/new")
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<String> showNewImagePage() {
         log.info("---endpoint 'showNewImagePage' was started---");
 
@@ -85,6 +89,7 @@ public class ItemController {
     }
 
     @PostMapping("/items/{id}/images/new")
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<String> updateImageById(@PathVariable Long id, @RequestPart FilePart image) {
         log.info("---endpoint 'updateImageById' with id: {} was started---", id);
 
@@ -93,7 +98,7 @@ public class ItemController {
 
     @GetMapping("/items/{id}")
     public Mono<Rendering> getItem(@PathVariable Long id,
-                                   @SessionAttribute("cart") Map<Long, Integer> cart) {
+                                   @SessionAttribute(required = false,name = "cart") Map<Long, Integer> cart) {
 
         log.info("---endpoint 'getItem' with id: {} and cart: {} from session was started---", id, cart);
 
@@ -105,11 +110,11 @@ public class ItemController {
     }
 
     @PostMapping("/items")
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<String> changeCartItemCountForItemsPage(@Valid @ModelAttribute InputFormItems params,
                                                         @SessionAttribute Map<Long, Integer> cart
     ) {
         log.info("---endpoint 'changeCartItemCountForItemsPage' with input form params: {},{} was started---", params, cart);
-
         return itemService.changeCartItemCount(new CartChangeDto(params.id(), params.action(), cart))
                 .thenReturn("redirect:/items?search=" + params.search()
                             + "&sort=" + params.sort()
@@ -118,6 +123,7 @@ public class ItemController {
     }
 
     @PostMapping("/items/{id}")
+    @PreAuthorize("hasAuthority('USER')")
     public Mono<Rendering> changeCartItemCountForItemPage(@ModelAttribute InputFormItem params,
                                                           @SessionAttribute Map<Long, Integer> cart
     ) {

@@ -27,14 +27,20 @@ spring:
       max-size: 50
       max-idle-time: 30s
       validation-query: SELECT 1
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/market-payment
+          jwk-set-uri: http://keycloak:8080/realms/market-payment/protocol/openid-connect/certs
 
 
 logging:
   level:
     root: WARN
-    com.alex.payment: INFO
-    com.alex.payment.service: DEBUG
-    com.alex.payment.repository: INFO
+    com.alex.market.payment: INFO
+    com.alex.market.payment.service: DEBUG
+    com.alex.market.payment.repository: INFO
     org.springframework.r2dbc: WARN
     org.springframework.transaction: INFO
   file:

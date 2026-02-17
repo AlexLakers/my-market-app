@@ -35,6 +35,7 @@ class AccountServiceTest {
     private AccountService accountService;
 
     @Test
+
     void getAccountById_shouldReturnAccountWithIdSuccess() {
         Account foundedAccount = Account.builder().id(VALID_ID).build();
         AccountResponse resp = new AccountResponse();
